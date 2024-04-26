@@ -1,0 +1,131 @@
+@page "/diagrams"
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Diagrams - ArchDiagram</PageTitle>
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1>Diagrams</h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <button class="btn btn-primary" @onclick="CreateNewDiagram">Create New Diagram</button>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search diagrams..." @bind="SearchQuery" />
+                <button class="btn btn-primary" @onclick="SearchDiagrams">Search</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            @if (Diagrams == null)
+            {
+                <p>Loading diagrams...</p>
+            }
+            else if (Diagrams.Count == 0)
+            {
+                <p>No diagrams found.</p>
+            }
+            else
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Level</th>
+                            <th>Created At</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var diagram in Diagrams)
+                        {
+                            <tr>
+                                <td>@diagram.Name</td>
+                                <td>@diagram.Description</td>
+                                <td>@GetDiagramLevel(diagram.Level)</td>
+                                <td>@diagram.CreatedAt.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" @onclick="() => ViewDiagram(diagram.Id)">View</button>
+                                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteDiagram(diagram.Id)">Delete</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Diagram> Diagrams { get; set; }
+    private string SearchQuery { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDiagrams();
+    }
+
+    private async Task LoadDiagrams()
+    {
+        // TODO: Implement loading diagrams from the storage mechanism
+        Diagrams =
+        [
+            new Diagram { Id = 1, Name = "System Context Diagram", Description = "High-level overview of the system", Level = 1, CreatedAt = DateTime.Now },
+            new Diagram { Id = 2, Name = "Container Diagram", Description = "Containers and their interactions", Level = 2, CreatedAt = DateTime.Now },
+            new Diagram { Id = 3, Name = "Component Diagram", Description = "Components within each container", Level = 3, CreatedAt = DateTime.Now }
+        ];
+    }
+
+    private void CreateNewDiagram()
+    {
+        NavigationManager.NavigateTo("/c4-diagram-wizard");
+    }
+
+    private async Task SearchDiagrams()
+    {
+        // TODO: Implement search functionality
+        await Task.CompletedTask;
+    }
+
+    private string GetDiagramLevel(int level)
+    {
+        return level switch
+        {
+            1 => "System Context",
+            2 => "Container",
+            3 => "Component",
+            4 => "Code",
+            _ => "Unknown"
+        };
+    }
+
+    private void ViewDiagram(int diagramId)
+    {
+        NavigationManager.NavigateTo($"/diagrams/{diagramId}");
+    }
+
+    private async Task DeleteDiagram(int diagramId)
+    {
+        // TODO: Implement deleting a diagram
+        await Task.CompletedTask;
+    }
+
+    private class Diagram
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public int Level { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}

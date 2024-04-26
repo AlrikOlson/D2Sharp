@@ -1,0 +1,121 @@
+@page "/c4-diagram-wizard"
+@inject NavigationManager NavigationManager
+@inject D2Wrapper D2Wrapper
+@rendermode InteractiveServer
+
+<PageTitle>C4 Diagram Wizard - ArchDiagram</PageTitle>
+
+<div class="container">
+    <h1 class="mb-4">C4 Diagram Wizard</h1>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Step @CurrentStep: @GetStepTitle()</h5>
+                    <div class="mb-3">
+                        <label for="diagramName" class="form-label">Diagram Name</label>
+                        <input type="text" class="form-control" id="diagramName" @bind="DiagramName" placeholder="Enter diagram name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="diagramDescription" class="form-label">Diagram Description</label>
+                        <textarea class="form-control" id="diagramDescription" @bind="DiagramDescription" rows="3" placeholder="Enter diagram description"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="diagramScript" class="form-label">Diagram Script</label>
+                        <textarea class="form-control" id="diagramScript" @bind="DiagramScript" rows="10" placeholder="Enter D2 script"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-secondary" @onclick="PreviousStep" disabled="@(CurrentStep == 1)">Previous</button>
+                        @if (CurrentStep < 4)
+                        {
+                            <button class="btn btn-primary" @onclick="NextStep">Next</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-success" @onclick="CreateDiagram">Create Diagram</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Diagram Preview</h5>
+                    <div class="svg-container">
+                        @((MarkupString)RenderedSvg)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .svg-container {
+        width: 100%;
+        padding-top: 100%;
+        position: relative;
+    }
+
+    .svg-container svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+@code {
+    private int CurrentStep = 1;
+    private string DiagramName = "";
+    private string DiagramDescription = "";
+    private string DiagramScript = "";
+    private string RenderedSvg = "";
+
+    private void PreviousStep()
+    {
+        if (CurrentStep > 1)
+        {
+            CurrentStep--;
+        }
+    }
+
+    private void NextStep()
+    {
+        if (CurrentStep < 4)
+        {
+            CurrentStep++;
+        }
+    }
+
+    private void CreateDiagram()
+    {
+        // TODO: Implement saving the diagram
+        NavigationManager.NavigateTo("/diagrams");
+    }
+
+    private string GetStepTitle()
+    {
+        return CurrentStep switch
+        {
+            1 => "System Context Diagram",
+            2 => "Container Diagram",
+            3 => "Component Diagram",
+            4 => "Code Diagram",
+            _ => ""
+        };
+    }
+
+    private void RenderDiagram()
+    {
+        RenderedSvg = D2Wrapper.RenderDiagram(DiagramScript) ?? "";
+    }
+
+    protected override void OnInitialized()
+    {
+        RenderDiagram();
+    }
+}

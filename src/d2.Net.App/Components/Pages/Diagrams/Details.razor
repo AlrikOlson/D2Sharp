@@ -1,0 +1,128 @@
+@page "/diagrams/{DiagramId:int}"
+@using d2.Net.App.Models
+@inject NavigationManager NavigationManager
+@inject D2Wrapper D2Wrapper
+@rendermode InteractiveServer
+
+<PageTitle>Diagram Details - ArchDiagram</PageTitle>
+
+<div class="container">
+    @if (Diagram == null)
+    {
+        <p>Loading diagram...</p>
+    }
+    else
+    {
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <h1>@Diagram.Name</h1>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-primary" @onclick="EditDiagram">Edit</button>
+                <button class="btn btn-danger" @onclick="DeleteDiagram">Delete</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Description</h5>
+                        <p class="card-text">@Diagram.Description</p>
+                        <h5 class="card-title">Level</h5>
+                        <p class="card-text">@GetDiagramLevel(Diagram.Level)</p>
+                        <h5 class="card-title">Created At</h5>
+                        <p class="card-text">@Diagram.CreatedAt.ToString("yyyy-MM-dd")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Diagram Preview</h5>
+                        <div class="svg-container">
+                            @((MarkupString)RenderedSvg)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .svg-container {
+        width: 100%;
+        padding-top: 100%;
+        position: relative;
+    }
+
+    .svg-container svg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public int DiagramId { get; set; }
+
+    private Diagram Diagram { get; set; }
+    private string RenderedSvg { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDiagram();
+    }
+
+    private async Task LoadDiagram()
+    {
+        // TODO: Implement loading the diagram from the storage mechanism based on DiagramId
+        Diagram = new Diagram
+        {
+            Id = DiagramId,
+            Name = "Sample Diagram",
+            Description = "This is a sample diagram.",
+            Level = 1,
+            CreatedAt = DateTime.Now,
+            Script = "direction: right\nA -> B -> C"
+        };
+
+        RenderDiagram();
+    }
+
+    private void RenderDiagram()
+    {
+        RenderedSvg = D2Wrapper.RenderDiagram(Diagram.Script) ?? "";
+    }
+
+    private void EditDiagram()
+    {
+        // TODO: Implement editing the diagram
+    }
+
+    private async Task DeleteDiagram()
+    {
+        // TODO: Implement deleting the diagram
+        await Task.CompletedTask;
+        NavigationManager.NavigateTo("/diagrams");
+    }
+
+    private string GetDiagramLevel(int level)
+    {
+        return level switch
+        {
+            1 => "System Context",
+            2 => "Container",
+            3 => "Component",
+            4 => "Code",
+            _ => "Unknown"
+        };
+    }
+}
