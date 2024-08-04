@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -18,8 +17,8 @@
     </PropertyGroup>
 
     <Target Name="BuildD2Wrapper" BeforeTargets="PreBuildEvent">
-        <Exec Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="powershell -File $(ProjectDir)d2wrapper\build.ps1 $(Configuration)" />
-        <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="pwsh -File $(ProjectDir)d2wrapper\build.ps1 $(Configuration)" />
+        <Exec Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)d2wrapper\build.ps1&quot; $(Configuration)" />
+        <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="pwsh -File &quot;$(ProjectDir)d2wrapper\build.ps1&quot; $(Configuration)" />
     </Target>
 
     <ItemGroup>
@@ -32,5 +31,4 @@
         <PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.4.1" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     </ItemGroup>
-
 </Project>

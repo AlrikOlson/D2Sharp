@@ -14,7 +14,7 @@ Write-Host "CGO_ENABLED: $env:CGO_ENABLED"
 
 # Build the Go code into a shared library
 Write-Host "Building Go code..."
-go build -trimpath -buildmode=c-shared -ldflags "-s" -o "d2wrapper.dll"
+go build -trimpath -buildmode=c-shared -buildvcs=false -ldflags "-s" -o "d2wrapper.dll"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to build Go code. Exit code: $LASTEXITCODE"
