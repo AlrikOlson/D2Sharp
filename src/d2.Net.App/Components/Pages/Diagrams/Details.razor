@@ -1,7 +1,9 @@
 @page "/diagrams/{DiagramId:int}"
 @using d2.Net.App.Models
+@using d2.Net.App.Services
 @inject NavigationManager NavigationManager
 @inject D2Wrapper D2Wrapper
+@inject IDiagramService DiagramService
 @rendermode InteractiveServer
 
 <PageTitle>Diagram Details - ArchDiagram</PageTitle>
@@ -9,7 +11,9 @@
 <div class="container">
     @if (Diagram == null)
     {
-        <p>Loading diagram...</p>
+        <div class="alert alert-info">
+            <i class="fas fa-spinner fa-spin"></i> Loading diagram...
+        </div>
     }
     else
     {
@@ -18,8 +22,14 @@
                 <h1>@Diagram.Name</h1>
             </div>
             <div class="col-md-6 text-end">
-                <button class="btn btn-primary" @onclick="EditDiagram">Edit</button>
-                <button class="btn btn-danger" @onclick="DeleteDiagram">Delete</button>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-primary" @onclick="EditDiagram">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn btn-danger" @onclick="DeleteDiagram">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -83,18 +93,12 @@
 
     private async Task LoadDiagram()
     {
-        // TODO: Implement loading the diagram from the storage mechanism based on DiagramId
-        Diagram = new Diagram
-        {
-            Id = DiagramId,
-            Name = "Sample Diagram",
-            Description = "This is a sample diagram.",
-            Level = 1,
-            CreatedAt = DateTime.Now,
-            Script = "direction: right\nA -> B -> C"
-        };
+        Diagram = await DiagramService.GetDiagramByIdAsync(DiagramId);
 
-        RenderDiagram();
+        if (Diagram != null)
+        {
+            RenderDiagram();
+        }
     }
 
     private void RenderDiagram()
@@ -109,8 +113,7 @@
 
     private async Task DeleteDiagram()
     {
-        // TODO: Implement deleting the diagram
-        await Task.CompletedTask;
+        await DiagramService.DeleteDiagramAsync(DiagramId);
         NavigationManager.NavigateTo("/diagrams");
     }
 

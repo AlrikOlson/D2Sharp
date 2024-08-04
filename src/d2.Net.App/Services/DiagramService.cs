@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using d2.Net.App.Models;
 
 namespace d2.Net.App.Services;
 
 public class DiagramService : IDiagramService
 {
-    public async Task<List<Diagram>> GetDiagramsAsync()
+    public async Task<IEnumerable<Diagram>> GetDiagramsAsync()
     {
         // TODO: Implement retrieving diagrams from the storage mechanism
         await Task.CompletedTask;
@@ -18,7 +19,7 @@ public class DiagramService : IDiagramService
         };
     }
 
-    public async Task<Diagram> GetDiagramByIdAsync(int diagramId)
+    public async Task<Diagram?> GetDiagramByIdAsync(int diagramId)
     {
         // TODO: Implement retrieving a diagram by its ID from the storage mechanism
         await Task.CompletedTask;
@@ -50,14 +51,4 @@ public class DiagramService : IDiagramService
         // TODO: Implement deleting a diagram from the storage mechanism
         await Task.CompletedTask;
     }
-}
-
-public class Diagram
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
-    public int Level { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public string Script { get; set; }
 }
