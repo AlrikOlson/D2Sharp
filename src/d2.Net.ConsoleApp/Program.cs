@@ -14,7 +14,7 @@ class Program
 
         var logger = loggerFactory.CreateLogger<D2Wrapper>();
         var wrapper = new D2Wrapper(logger);
-
+        
         var script = D2Scripts.Simple;
 
         logger.LogInformation("Rendering diagram...");

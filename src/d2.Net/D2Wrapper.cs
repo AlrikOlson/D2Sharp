@@ -1,6 +1,6 @@
-﻿// D2Wrapper.cs
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace d2.Net;
 
@@ -25,9 +25,9 @@ public partial class D2Wrapper
 {
     private readonly ILogger<D2Wrapper> _logger;
 
-    public D2Wrapper(ILogger<D2Wrapper> logger)
+    public D2Wrapper(ILogger<D2Wrapper>? logger = null)
     {
-        _logger = logger;
+        _logger = logger ?? NullLogger<D2Wrapper>.Instance;
     }
 
     [LibraryImport("d2wrapper.dll", EntryPoint = "RenderDiagram", StringMarshalling = StringMarshalling.Utf8)]
