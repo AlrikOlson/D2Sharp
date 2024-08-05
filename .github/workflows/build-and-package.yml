@@ -84,12 +84,12 @@ jobs:
           cd src/D2Sharp/d2wrapper
           go build -buildmode=c-shared -o d2wrapper${{ runner.os == 'Windows' && '.dll' || runner.os == 'macOS' && '.dylib' || '.so' }} .
       - name: Upload D2Sharp build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: d2net-${{ matrix.os }}
           path: src/D2Sharp/bin/Release/net8.0/D2Sharp.*
       - name: Upload native library
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: d2wrapper-${{ matrix.os }}
           path: src/D2Sharp/d2wrapper/d2wrapper*
@@ -159,7 +159,7 @@ jobs:
       - name: Pack NuGet package
         run: nuget pack D2Sharp.nuspec -BasePath package
       - name: Upload NuGet package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: nuget-package
           path: ./*.nupkg
