@@ -108,8 +108,8 @@ jobs:
         
         cp artifacts/d2net-ubuntu-latest/d2.Net.dll package/lib/net8.0/
         cp artifacts/d2wrapper-windows-latest/d2wrapper.dll package/runtimes/win-x64/native/
-        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.dll package/runtimes/linux-x64/native/
-        cp artifacts/d2wrapper-macos-latest/d2wrapper.dll package/runtimes/osx-x64/native/
+        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so package/runtimes/linux-x64/native/
+        cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
 
     - name: Get version
       id: get_version

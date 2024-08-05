@@ -13,10 +13,10 @@ public partial class D2Wrapper
         _logger = logger ?? NullLogger<D2Wrapper>.Instance;
     }
 
-    [LibraryImport("d2wrapper.dll", EntryPoint = "RenderDiagram", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport("d2wrapper", EntryPoint = "RenderDiagram", StringMarshalling = StringMarshalling.Utf8)]
     private static partial IntPtr RenderDiagramInternal(string script, out IntPtr errorPtr);
 
-    [LibraryImport("d2wrapper.dll", EntryPoint = "FreeDiagram")]
+    [LibraryImport("d2wrapper", EntryPoint = "FreeDiagram")]
     private static partial void FreeDiagram(IntPtr ptr);
 
     public string? RenderDiagram(string script)
