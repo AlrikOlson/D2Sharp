@@ -63,3 +63,11 @@ Running the web demo:
 cd examples/D2Sharp.Web
 dotnet run
 ```
+
+## Acknowledgements
+
+This project would not be possible without the following open-source projects:
+
+- [D2](https://github.com/terrastruct/d2): The underlying diagramming engine
+- [.NET](https://github.com/dotnet/runtime): The runtime and framework
+- [Go](https://github.com/golang/go): Used for the native wrapper
