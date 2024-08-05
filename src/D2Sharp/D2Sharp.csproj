@@ -16,11 +16,11 @@
         <InformationalVersion>$(VersionPrefix)-$(VersionSuffix)</InformationalVersion>
 
         <!-- Package metadata -->
-        <Product>d2.Net</Product>
+        <Product>D2Sharp</Product>
         <Description>A .NET wrapper for the D2 library</Description>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/AlrikOlson/d2.Net</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/AlrikOlson/d2.Net.git</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/AlrikOlson/D2Sharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/AlrikOlson/D2Sharp.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>d2;diagram;visualization</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>

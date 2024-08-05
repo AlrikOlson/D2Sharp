@@ -57,7 +57,7 @@ function Check-GCC64 {
 }
 
 # Main script
-Write-Host "Checking prerequisites for d2.Net project..." -ForegroundColor Cyan
+Write-Host "Checking prerequisites for D2Sharp project..." -ForegroundColor Cyan
 
 Check-DotNetSDK
 Check-Go

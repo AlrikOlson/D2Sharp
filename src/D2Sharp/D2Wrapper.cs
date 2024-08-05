@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-namespace d2.Net;
+namespace D2Sharp;
 
 public partial class D2Wrapper
 {

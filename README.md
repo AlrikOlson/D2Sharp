@@ -1,6 +1,6 @@
-# d2.Net
+# D2Sharp
 
-d2.Net wraps the D2 diagramming library for .NET, allowing you to create diagrams with C# in your .NET applications.
+D2Sharp wraps the D2 diagramming library for .NET, allowing you to create diagrams with C# in your .NET applications.
 
 ## Features
 
@@ -28,9 +28,9 @@ Unix-based systems:
 
 ## Project Structure
 
-- `src/d2.Net`: Main library project
-- `examples/d2.Net.Web`: Web demo application
-- `src/d2.Net/d2wrapper`: Go wrapper code
+- `src/D2Sharp`: Main library project
+- `examples/D2Sharp.Web`: Web demo application
+- `src/D2Sharp/d2wrapper`: Go wrapper code
 
 ## Setup
 
@@ -60,6 +60,6 @@ var svg = wrapper.RenderDiagram(script);
 Running the web demo:
 
 ```
-cd examples/d2.Net.Web
+cd examples/D2Sharp.Web
 dotnet run
 ```

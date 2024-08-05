@@ -48,7 +48,7 @@ check_gcc() {
 }
 
 # Main script
-echo "Checking prerequisites for d2.Net project..."
+echo "Checking prerequisites for D2Sharp project..."
 echo
 
 check_dotnet_sdk

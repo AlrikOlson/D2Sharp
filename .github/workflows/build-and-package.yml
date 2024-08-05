@@ -13,7 +13,7 @@ permissions:
 env:
   DOTNET_VERSION: '8.0.x'
   GO_VERSION: '1.22.2'
-  NUGET_PACKAGE_NAME: 'd2.Net'
+  NUGET_PACKAGE_NAME: 'D2Sharp'
   CI: true
 
 jobs:
@@ -59,20 +59,20 @@ jobs:
 
     - name: Build native library
       run: |
-        cd src/d2.Net/d2wrapper
+        cd src/D2Sharp/d2wrapper
         go build -buildmode=c-shared -o d2wrapper${{ runner.os == 'Windows' && '.dll' || runner.os == 'macOS' && '.dylib' || '.so' }} .
 
-    - name: Upload d2.Net build artifact
+    - name: Upload D2Sharp build artifact
       uses: actions/upload-artifact@v3
       with:
         name: d2net-${{ matrix.os }}
-        path: src/d2.Net/bin/Release/net8.0/d2.Net.*
+        path: src/D2Sharp/bin/Release/net8.0/D2Sharp.*
 
     - name: Upload native library
       uses: actions/upload-artifact@v3
       with:
         name: d2wrapper-${{ matrix.os }}
-        path: src/d2.Net/d2wrapper/d2wrapper*
+        path: src/D2Sharp/d2wrapper/d2wrapper*
 
     - name: Upload build logs on failure
       if: failure()
@@ -106,7 +106,7 @@ jobs:
         mkdir -p package/runtimes/linux-x64/native
         mkdir -p package/runtimes/osx-x64/native
         
-        cp artifacts/d2net-ubuntu-latest/d2.Net.dll package/lib/net8.0/
+        cp artifacts/d2net-ubuntu-latest/D2Sharp.dll package/lib/net8.0/
         cp artifacts/d2wrapper-windows-latest/d2wrapper.dll package/runtimes/win-x64/native/
         cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so package/runtimes/linux-x64/native/
         cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
@@ -114,8 +114,8 @@ jobs:
     - name: Get version
       id: get_version
       run: |
-        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/d2.Net/d2.Net.csproj)
-        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/d2.Net/d2.Net.csproj)
+        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
+        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
         if [ ! -z "$SUFFIX" ]; then
           VERSION="$VERSION-$SUFFIX"
         fi
@@ -123,14 +123,14 @@ jobs:
 
     - name: Create nuspec file
       run: |
-        cat << EOF > d2.Net.nuspec
+        cat << EOF > D2Sharp.nuspec
         <?xml version="1.0" encoding="utf-8"?>
         <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
           <metadata>
-            <id>d2.Net</id>
+            <id>D2Sharp</id>
             <version>${{ steps.get_version.outputs.VERSION }}</version>
             <authors>Your Name</authors>
-            <description>d2.Net is a .NET wrapper for the D2 diagramming library</description>
+            <description>D2Sharp is a .NET wrapper for the D2 diagramming library</description>
             <dependencies>
               <group targetFramework="net8.0">
                 <dependency id="Microsoft.Extensions.Logging" version="8.0.0" />
@@ -138,14 +138,14 @@ jobs:
             </dependencies>
           </metadata>
           <files>
-            <file src="lib\net8.0\d2.Net.dll" target="lib\net8.0" />
+            <file src="lib\net8.0\D2Sharp.dll" target="lib\net8.0" />
             <file src="runtimes\**\*" target="runtimes" />
           </files>
         </package>
         EOF
 
     - name: Pack NuGet package
-      run: nuget pack d2.Net.nuspec -BasePath package
+      run: nuget pack D2Sharp.nuspec -BasePath package
 
     - name: Upload NuGet package
       uses: actions/upload-artifact@v3
@@ -168,8 +168,8 @@ jobs:
     - name: Get version
       id: get_version
       run: |
-        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/d2.Net/d2.Net.csproj)
-        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/d2.Net/d2.Net.csproj)
+        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
+        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
         if [ ! -z "$SUFFIX" ]; then
           VERSION="$VERSION-$SUFFIX"
         fi

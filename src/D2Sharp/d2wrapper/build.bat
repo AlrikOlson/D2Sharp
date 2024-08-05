@@ -9,5 +9,5 @@ if "%CONFIGURATION%"=="" (
     set CONFIGURATION=Debug
 )
 
-REM Copy the built dll to the D2.Net project based on the configuration
+REM Copy the built dll to the D2Sharp project based on the configuration
 xcopy /y /d "d2wrapper.dll" "..\bin\%CONFIGURATION%\net8.0\"

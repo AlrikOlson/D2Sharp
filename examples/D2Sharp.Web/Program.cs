@@ -1,4 +1,4 @@
-using d2.Net;
+using D2Sharp;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
