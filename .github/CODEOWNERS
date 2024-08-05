@@ -1,0 +1,34 @@
+# This file defines who is responsible for reviewing and approving changes to different parts of the codebase.
+
+# Global owners (if no other rule matches)
+* @AlrikOlson
+
+# C# code owners
+/src/D2Sharp/*.cs @AlrikOlson
+
+# Go wrapper code owners
+/src/D2Sharp/d2wrapper/ @AlrikOlson
+
+# CI/CD workflow owners
+/.github/workflows/ @AlrikOlson
+
+# Documentation owners
+/docs/ @AlrikOlson
+README.md @AlrikOlson
+
+# Test code owners
+/tests/ @AlrikOlson
+
+# Build script owners
+*.csproj @AlrikOlson
+*.sln @AlrikOlson
+
+# Dependency management
+/src/D2Sharp/packages.config @AlrikOlson
+/src/D2Sharp/d2wrapper/go.mod @AlrikOlson
+/src/D2Sharp/d2wrapper/go.sum @AlrikOlson
+
+# Configuration file owners
+.editorconfig @AlrikOlson
+.gitattributes @AlrikOlson
+.gitignore @AlrikOlson
