@@ -14,6 +14,7 @@ env:
   DOTNET_VERSION: '8.0.x'
   GO_VERSION: '1.22.2'
   NUGET_PACKAGE_NAME: 'd2.Net'
+  CI: true
 
 jobs:
   build:
@@ -59,13 +60,19 @@ jobs:
     - name: Build native library
       run: |
         cd src/d2.Net/d2wrapper
-        go build -buildmode=c-shared -o d2wrapper.dll .
+        go build -buildmode=c-shared -o d2wrapper${{ runner.os == 'Windows' && '.dll' || runner.os == 'macOS' && '.dylib' || '.so' }} .
+
+    - name: Upload d2.Net build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: d2net-${{ matrix.os }}
+        path: src/d2.Net/bin/Release/net8.0/d2.Net.*
 
     - name: Upload native library
       uses: actions/upload-artifact@v3
       with:
-        name: native-lib-${{ matrix.os }}
-        path: src/d2.Net/d2wrapper/d2wrapper.dll
+        name: d2wrapper-${{ matrix.os }}
+        path: src/d2.Net/d2wrapper/d2wrapper*
 
     - name: Upload build logs on failure
       if: failure()
@@ -87,20 +94,47 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Download all artifacts
+    - name: Download artifacts
       uses: actions/download-artifact@v3
+      with:
+        path: artifacts
 
-    - name: Prepare native libraries
+    - name: Prepare files for packaging
       run: |
-        mkdir -p runtimes/win-x64/native
-        mkdir -p runtimes/linux-x64/native
-        mkdir -p runtimes/osx-x64/native
-        mv native-lib-windows-latest/d2wrapper.dll runtimes/win-x64/native/
-        mv native-lib-ubuntu-latest/d2wrapper.dll runtimes/linux-x64/native/
-        mv native-lib-macos-latest/d2wrapper.dll runtimes/osx-x64/native/
+        mkdir -p package/lib/net8.0
+        mkdir -p package/runtimes/win-x64/native
+        mkdir -p package/runtimes/linux-x64/native
+        mkdir -p package/runtimes/osx-x64/native
+        
+        cp artifacts/d2net-ubuntu-latest/d2.Net.dll package/lib/net8.0/
+        cp artifacts/d2wrapper-windows-latest/d2wrapper.dll package/runtimes/win-x64/native/
+        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so package/runtimes/linux-x64/native/
+        cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
 
-    - name: Pack
-      run: dotnet pack src/d2.Net/d2.Net.csproj --configuration Release --output .
+    - name: Create nuspec file
+      run: |
+        cat << EOF > d2.Net.nuspec
+        <?xml version="1.0" encoding="utf-8"?>
+        <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+          <metadata>
+            <id>d2.Net</id>
+            <version>${{ github.ref_name }}</version>
+            <description>d2.Net is a .NET wrapper for the D2 diagramming library</description>
+            <dependencies>
+              <group targetFramework="net8.0">
+                <dependency id="Microsoft.Extensions.Logging" version="8.0.0" />
+              </group>
+            </dependencies>
+          </metadata>
+          <files>
+            <file src="package\lib\net8.0\d2.Net.dll" target="lib\net8.0" />
+            <file src="package\runtimes\**\*" target="runtimes" />
+          </files>
+        </package>
+        EOF
+
+    - name: Pack NuGet package
+      run: nuget pack d2.Net.nuspec -BasePath package
 
     - name: Upload NuGet package
       uses: actions/upload-artifact@v3
