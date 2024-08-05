@@ -1,5 +1,7 @@
 # D2Sharp
 
+[![NuGet](https://img.shields.io/nuget/v/D2Sharp.svg)](https://www.nuget.org/packages/D2Sharp/)
+
 D2Sharp wraps the D2 diagramming library for .NET, allowing you to create diagrams with C# in your .NET applications.
 
 ## Features
