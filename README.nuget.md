@@ -59,10 +59,6 @@ catch (Exception ex)
 
 - .NET 8.0 or later
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Acknowledgements
 
 D2Sharp is built on top of the following open-source projects:
