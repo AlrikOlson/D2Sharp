@@ -4,23 +4,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace d2.Net;
 
-public enum D2Theme
-{
-    GrapeSoda,
-    Aubergine,
-    ButteredToast,
-    // Add more themes as needed
-}
-
-public enum D2Padding
-{
-    None,
-    Small,
-    Medium,
-    Large,
-    // Add more padding options as needed
-}
-
 public partial class D2Wrapper
 {
     private readonly ILogger<D2Wrapper> _logger;
@@ -31,16 +14,16 @@ public partial class D2Wrapper
     }
 
     [LibraryImport("d2wrapper.dll", EntryPoint = "RenderDiagram", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr RenderDiagramInternal(string script, int themeID, int pad, out IntPtr errorPtr);
+    private static partial IntPtr RenderDiagramInternal(string script, out IntPtr errorPtr);
 
     [LibraryImport("d2wrapper.dll", EntryPoint = "FreeDiagram")]
     private static partial void FreeDiagram(IntPtr ptr);
 
-    public string? RenderDiagram(string script, D2Theme theme = D2Theme.ButteredToast, D2Padding padding = D2Padding.Large)
+    public string? RenderDiagram(string script)
     {
         _logger.LogDebug("Calling RenderDiagram with script {Script}", script);
         IntPtr errorPtr;
-        var svgPtr = RenderDiagramInternal(script, (int)theme, (int)padding, out errorPtr);
+        var svgPtr = RenderDiagramInternal(script, out errorPtr);
 
         if (errorPtr != IntPtr.Zero)
         {
