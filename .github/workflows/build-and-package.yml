@@ -47,7 +47,7 @@ jobs:
       - name: Run tests
         run: dotnet test --collect:"XPlat Code Coverage"
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
 
   build:
     needs: [lint, test]
