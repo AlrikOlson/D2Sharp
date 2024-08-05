@@ -108,8 +108,18 @@ jobs:
         
         cp artifacts/d2net-ubuntu-latest/d2.Net.dll package/lib/net8.0/
         cp artifacts/d2wrapper-windows-latest/d2wrapper.dll package/runtimes/win-x64/native/
-        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so package/runtimes/linux-x64/native/
-        cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
+        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.dll package/runtimes/linux-x64/native/
+        cp artifacts/d2wrapper-macos-latest/d2wrapper.dll package/runtimes/osx-x64/native/
+
+    - name: Get version
+      id: get_version
+      run: |
+        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/d2.Net/d2.Net.csproj)
+        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/d2.Net/d2.Net.csproj)
+        if [ ! -z "$SUFFIX" ]; then
+          VERSION="$VERSION-$SUFFIX"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Create nuspec file
       run: |
@@ -118,8 +128,8 @@ jobs:
         <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
           <metadata>
             <id>d2.Net</id>
-            <version>${{ github.ref_name }}</version>
-            <authors>Alrik Olson</authors>
+            <version>${{ steps.get_version.outputs.VERSION }}</version>
+            <authors>Your Name</authors>
             <description>d2.Net is a .NET wrapper for the D2 diagramming library</description>
             <dependencies>
               <group targetFramework="net8.0">
@@ -157,7 +167,13 @@ jobs:
 
     - name: Get version
       id: get_version
-      run: echo "VERSION=$(grep -oP '(?<=<Version>).*(?=</Version>)' src/d2.Net/d2.Net.csproj)" >> $GITHUB_OUTPUT
+      run: |
+        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/d2.Net/d2.Net.csproj)
+        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/d2.Net/d2.Net.csproj)
+        if [ ! -z "$SUFFIX" ]; then
+          VERSION="$VERSION-$SUFFIX"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Create Release
       id: create_release
@@ -168,7 +184,7 @@ jobs:
         tag_name: v${{ steps.get_version.outputs.VERSION }}
         release_name: Release ${{ steps.get_version.outputs.VERSION }}
         draft: false
-        prerelease: false
+        prerelease: true
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
