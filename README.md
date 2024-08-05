@@ -1,67 +1,65 @@
 # d2.Net
 
-d2.Net wraps the D2 diagramming library for .NET, letting you create diagrams with C# in your .NET apps.
+d2.Net wraps the D2 diagramming library for .NET, allowing you to create diagrams with C# in your .NET applications.
 
-## What it does
+## Features
 
-- Outputs diagrams as SVG
-- Offers themes for styling
-- Works with ASP.NET Core for web apps
-- Includes a console app for quick tests
+- Render diagrams as SVG
+- Integrate with ASP.NET Core for web applications
+- Includes a web demo for quick testing
 
-## Before you start
-
-You need:
+## Prerequisites for Building
 
 - .NET 8.0 SDK or newer
 - Go 1.22.2 or newer
-- GCC (to compile the Go wrapper)
+- GCC (for compiling the Go wrapper)
 
-Check your setup:
+You can check your setup using the provided scripts:
 
+Windows:
 ```powershell
-.\check_prerequisites.ps1
+.\depcheck.ps1
 ```
 
-## Setting up
-
-1. Clone the repo
-2. Build it: `dotnet build`
-
-## How to use it
-
-Quick start:
-
-```csharp
-var wrapper = new D2Wrapper(logger);
-var script = @"direction: right
-A -> B -> C";
-var svg = wrapper.RenderDiagram(script);
+Unix-based systems:
+```bash
+./depcheck.sh
 ```
 
-Run the web app:
+## Project Structure
 
-```
-cd src/d2.Net.App
-dotnet run
-```
-
-## What's in the project
-
-- `src/d2.Net`: Main library
-- `src/d2.Net.App`: Web app demo
-- `src/d2.Net.ConsoleApp`: Console app for tests
-- `src/d2.Net.Diagrams`: Pre-made diagram scripts
+- `src/d2.Net`: Main library project
+- `examples/d2.Net.Web`: Web demo application
 - `src/d2.Net/d2wrapper`: Go wrapper code
 
-## Tweaking it
+## Setup
 
-Change themes, padding, and layout:
+1. Clone the repository
+2. Build the project: `dotnet build`
+
+## Usage
+
+Basic usage:
 
 ```csharp
-var svg = wrapper.RenderDiagram(script, D2Theme.Aubergine, D2Padding.Medium);
+// Create an instance of D2Wrapper
+// You can pass a logger instance if you want to enable logging
+var wrapper = new D2Wrapper(logger);
+
+// Define your D2 script as a string
+var script = @"direction: right
+A -> B -> C";
+
+// Render the diagram
+var svg = wrapper.RenderDiagram(script);
+
+// The 'svg' variable now contains the SVG representation of your diagram
+// You can save this to a file, display it in a web page, or process it further as needed
 ```
 
-## Want to help?
+Running the web demo:
 
-Send a pull request with your improvements!
+```
+cd examples/d2.Net.Web
+dotnet run
+```
