@@ -142,9 +142,9 @@ jobs:
             </dependencies>
           </metadata>
           <files>
-            <file src="lib\net8.0\D2Sharp.dll" target="lib\net8.0" />
-            <file src="runtimes\**\*" target="runtimes" />
-            <file src="..\..\README.md" target="\" />
+            <file src="lib/net8.0/D2Sharp.dll" target="lib/net8.0" />
+            <file src="runtimes/**/*" target="runtimes" />
+            <file src="../README.md" target="\" />
           </files>
         </package>
         EOF
