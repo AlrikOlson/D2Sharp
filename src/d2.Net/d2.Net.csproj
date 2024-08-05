@@ -22,6 +22,13 @@
     </Target>
 
     <ItemGroup>
+        <Content Include="runtimes\**\*">
+            <Pack>true</Pack>
+            <PackagePath>runtimes</PackagePath>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
         <None Include="$(OutputPath)\d2wrapper.dll" Link="d2wrapper.dll">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
