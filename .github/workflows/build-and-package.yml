@@ -119,6 +119,7 @@ jobs:
           <metadata>
             <id>d2.Net</id>
             <version>${{ github.ref_name }}</version>
+            <authors>Alrik Olson</authors>
             <description>d2.Net is a .NET wrapper for the D2 diagramming library</description>
             <dependencies>
               <group targetFramework="net8.0">
