@@ -138,8 +138,8 @@ jobs:
             </dependencies>
           </metadata>
           <files>
-            <file src="package\lib\net8.0\d2.Net.dll" target="lib\net8.0" />
-            <file src="package\runtimes\**\*" target="runtimes" />
+            <file src="lib\net8.0\d2.Net.dll" target="lib\net8.0" />
+            <file src="runtimes\**\*" target="runtimes" />
           </files>
         </package>
         EOF
