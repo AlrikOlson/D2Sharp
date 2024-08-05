@@ -5,6 +5,10 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2.Net", "src\d2.Net\d2.Net.csproj", "{49592517-A5C2-40A6-96C7-2A6E58E5329D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{E1137A34-2773-40CE-BC87-19D4E3D99DD0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2.Net.ConsoleApp", "examples\d2.Net.ConsoleApp\d2.Net.ConsoleApp.csproj", "{9152CF03-9ABC-4259-B81C-1D330E308B0B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,12 @@ Global
 		{49592517-A5C2-40A6-96C7-2A6E58E5329D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49592517-A5C2-40A6-96C7-2A6E58E5329D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49592517-A5C2-40A6-96C7-2A6E58E5329D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9152CF03-9ABC-4259-B81C-1D330E308B0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9152CF03-9ABC-4259-B81C-1D330E308B0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9152CF03-9ABC-4259-B81C-1D330E308B0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9152CF03-9ABC-4259-B81C-1D330E308B0B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{9152CF03-9ABC-4259-B81C-1D330E308B0B} = {E1137A34-2773-40CE-BC87-19D4E3D99DD0}
 	EndGlobalSection
 EndGlobal
