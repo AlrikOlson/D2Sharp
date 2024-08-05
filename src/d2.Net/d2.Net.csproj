@@ -1,66 +1,70 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <IncludeBuildOutput>true</IncludeBuildOutput>
-    <WasmNativeLib>d2wrapper</WasmNativeLib>
-    <LangVersion>latest</LangVersion>
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <IncludeBuildOutput>true</IncludeBuildOutput>
+        <WasmNativeLib>d2wrapper</WasmNativeLib>
+        <LangVersion>latest</LangVersion>
 
-    <!-- Version information -->
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
-    <PackageVersion>1.0.0</PackageVersion>
+        <!-- Version information -->
+        <Version>1.0.0</Version>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <PackageVersion>1.0.0</PackageVersion>
 
-    <!-- Package metadata -->
-    <Product>d2.Net</Product>
-    <Description>A .NET wrapper for the D2 library</Description>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/AlrikOlson/d2.Net</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/AlrikOlson/d2.Net.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>d2;diagram;visualization</PackageTags>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+        <!-- Package metadata -->
+        <Product>d2.Net</Product>
+        <Description>A .NET wrapper for the D2 library</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/AlrikOlson/d2.Net</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/AlrikOlson/d2.Net.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>d2;diagram;visualization</PackageTags>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
 
-    <!-- Documentation and symbols -->
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-  </PropertyGroup>
+        <!-- Documentation and symbols -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>bin\Debug\</OutputPath>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+        <OutputPath>bin\Debug\</OutputPath>
+    </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>bin\Release\</OutputPath>
-  </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+        <OutputPath>bin\Release\</OutputPath>
+    </PropertyGroup>
 
-  <Target Name="BuildD2Wrapper" BeforeTargets="PreBuildEvent">
-    <Exec Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)d2wrapper\build.ps1&quot; $(Configuration)" />
-    <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="pwsh -File &quot;$(ProjectDir)d2wrapper\build.ps1&quot; $(Configuration)" />
-  </Target>
+    <Target Name="BuildD2Wrapper" BeforeTargets="PreBuildEvent">
+        <Exec Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)d2wrapper\build.ps1&quot; $(Configuration)"/>
+        <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="pwsh -File &quot;$(ProjectDir)d2wrapper\build.ps1&quot; $(Configuration)"/>
+    </Target>
 
-  <ItemGroup>
-    <Content Include="runtimes\**\*">
-      <Pack>true</Pack>
-      <PackagePath>runtimes</PackagePath>
-    </Content>
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="runtimes\**\*">
+            <Pack>true</Pack>
+            <PackagePath>runtimes</PackagePath>
+        </Content>
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="$(OutputPath)\d2wrapper.dll" Link="d2wrapper.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="../../README.md" Pack="true" PackagePath="/" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="$(OutputPath)\d2wrapper.dll" Link="d2wrapper.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+        <None Include="../../README.md" Pack="true" PackagePath="/"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    </PropertyGroup>
 </Project>
