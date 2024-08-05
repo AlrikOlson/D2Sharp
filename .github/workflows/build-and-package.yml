@@ -28,7 +28,7 @@ jobs:
       - name: Run dotnet format
         run: dotnet format --verify-no-changes
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           working-directory: src/D2Sharp/d2wrapper
 
