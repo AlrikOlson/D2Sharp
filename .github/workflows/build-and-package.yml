@@ -129,8 +129,12 @@ jobs:
           <metadata>
             <id>D2Sharp</id>
             <version>${{ steps.get_version.outputs.VERSION }}</version>
-            <authors>Your Name</authors>
-            <description>D2Sharp is a .NET wrapper for the D2 diagramming library</description>
+            <authors>Alrik Olson</authors>
+            <description>A .NET wrapper for the D2 library</description>
+            <projectUrl>https://github.com/AlrikOlson/D2Sharp</projectUrl>
+            <repository type="git" url="https://github.com/AlrikOlson/D2Sharp.git" />
+            <tags>d2 diagram visualization</tags>
+            <readme>README.md</readme>
             <dependencies>
               <group targetFramework="net8.0">
                 <dependency id="Microsoft.Extensions.Logging" version="8.0.0" />
@@ -140,6 +144,7 @@ jobs:
           <files>
             <file src="lib\net8.0\D2Sharp.dll" target="lib\net8.0" />
             <file src="runtimes\**\*" target="runtimes" />
+            <file src="..\..\README.md" target="\" />
           </files>
         </package>
         EOF
