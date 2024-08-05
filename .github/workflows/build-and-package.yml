@@ -1,4 +1,4 @@
-name: Build and Package
+name: Build, Package, and Release
 
 on:
   push:
@@ -39,31 +39,82 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal
 
-    - name: Pack
-      run: dotnet pack --configuration Release --no-build --output .
+    - name: Build native library
+      run: |
+        cd src/d2.Net/d2wrapper
+        go build -buildmode=c-shared -o d2wrapper${{ matrix.os == 'windows-latest' && '.dll' || matrix.os == 'macos-latest' && '.dylib' || '.so' }} .
 
-    - name: Upload NuGet package artifact
+    - name: Upload native library
       uses: actions/upload-artifact@v3
       with:
-        name: nuget-package-${{ matrix.os }}
+        name: native-lib-${{ matrix.os }}
+        path: src/d2.Net/d2wrapper/d2wrapper*
+
+  package:
+    needs: build
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Prepare native libraries
+      run: |
+        mkdir -p runtimes/win-x64/native
+        mkdir -p runtimes/linux-x64/native
+        mkdir -p runtimes/osx-x64/native
+        move native-lib-windows-latest\d2wrapper.dll runtimes\win-x64\native\
+        move native-lib-ubuntu-latest\d2wrapper.so runtimes\linux-x64\native\
+        move native-lib-macos-latest\d2wrapper.dylib runtimes\osx-x64\native\
+
+    - name: Pack
+      run: dotnet pack src/d2.Net/d2.Net.csproj --configuration Release --output .
+
+    - name: Upload NuGet package
+      uses: actions/upload-artifact@v3
+      with:
+        name: nuget-package
         path: ./*.nupkg
 
-  create-release:
-    needs: build
+  release:
+    needs: package
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - uses: actions/checkout@v3
 
-    - name: Download all artifacts
+    - name: Download NuGet package
       uses: actions/download-artifact@v3
+      with:
+        name: nuget-package
 
-    - name: Display structure of downloaded files
-      run: ls -R
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release ${{ github.run_number }}
+        draft: false
+        prerelease: false
 
-    # Here you would add steps to combine the artifacts if necessary
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./d2.Net.*.nupkg
+        asset_name: d2.Net.nupkg
+        asset_content_type: application/zip
 
     # Placeholder for publish step
     # - name: Publish to NuGet
-    #   run: dotnet nuget push ./**/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-    #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #   run: dotnet nuget push ./*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
