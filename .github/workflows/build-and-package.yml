@@ -59,13 +59,13 @@ jobs:
     - name: Build native library
       run: |
         cd src/d2.Net/d2wrapper
-        go build -buildmode=c-shared -o d2wrapper${{ matrix.os == 'windows-latest' && '.dll' || matrix.os == 'macos-latest' && '.dylib' || '.so' }} .
+        go build -buildmode=c-shared -o d2wrapper.dll .
 
     - name: Upload native library
       uses: actions/upload-artifact@v3
       with:
         name: native-lib-${{ matrix.os }}
-        path: src/d2.Net/d2wrapper/d2wrapper*
+        path: src/d2.Net/d2wrapper/d2wrapper.dll
 
     - name: Upload build logs on failure
       if: failure()
@@ -96,8 +96,8 @@ jobs:
         mkdir -p runtimes/linux-x64/native
         mkdir -p runtimes/osx-x64/native
         mv native-lib-windows-latest/d2wrapper.dll runtimes/win-x64/native/
-        mv native-lib-ubuntu-latest/d2wrapper.so runtimes/linux-x64/native/
-        mv native-lib-macos-latest/d2wrapper.dylib runtimes/osx-x64/native/
+        mv native-lib-ubuntu-latest/d2wrapper.dll runtimes/linux-x64/native/
+        mv native-lib-macos-latest/d2wrapper.dll runtimes/osx-x64/native/
 
     - name: Pack
       run: dotnet pack src/d2.Net/d2.Net.csproj --configuration Release --output .
