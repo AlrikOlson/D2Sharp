@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>d2.Net Web Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        textarea { width: 100%; height: 200px; }
+        #result { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>d2.Net Web Demo</h1>
+    <textarea id="script" placeholder="Enter your D2 script here...">direction: right
+A -> B -> C</textarea>
+    <button onclick="renderDiagram()">Render Diagram</button>
+    <div id="result"></div>
+
+    <script>
+        async function renderDiagram() {
+            const script = document.getElementById('script').value;
+            const result = document.getElementById('result');
+
+            try {
+                const response = await fetch('/render', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script })
+                });
+
+                if (response.ok) {
+                    const svg = await response.text();
+                    result.innerHTML = svg;
+                } else {
+                    const error = await response.text();
+                    result.textContent = `Error: ${error}`;
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
