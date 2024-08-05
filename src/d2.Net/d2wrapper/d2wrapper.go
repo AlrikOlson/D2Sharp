@@ -18,29 +18,12 @@ import (
 	"oss.terrastruct.com/d2/d2layouts/d2dagrelayout"
 	"oss.terrastruct.com/d2/d2lib"
 	"oss.terrastruct.com/d2/d2renderers/d2svg"
-	"oss.terrastruct.com/d2/d2themes/d2themescatalog"
 	"oss.terrastruct.com/d2/lib/log"
 	"oss.terrastruct.com/d2/lib/textmeasure"
-	"oss.terrastruct.com/util-go/go2"
 )
 
-var themeMap = map[int]int64{
-	0: d2themescatalog.GrapeSoda.ID,
-	1: d2themescatalog.Aubergine.ID,
-	2: d2themescatalog.ButteredToast.ID,
-	// Add more theme mappings as needed
-}
-
-var paddingMap = map[int]int64{
-	0: 0,
-	1: 5,
-	2: 10,
-	3: 20,
-	// Add more padding mappings as needed
-}
-
 //export RenderDiagram
-func RenderDiagram(script *C.char, themeID int64, pad int64, errorPtr **C.char) *C.char {
+func RenderDiagram(script *C.char, errorPtr **C.char) *C.char {
 	goScript := C.GoString(script)
 
 	ruler, _ := textmeasure.NewRuler()
@@ -49,10 +32,7 @@ func RenderDiagram(script *C.char, themeID int64, pad int64, errorPtr **C.char) 
 		return d2dagrelayout.DefaultLayout, nil
 	}
 
-	renderOpts := &d2svg.RenderOpts{
-		Pad:     go2.Pointer(paddingMap[int(pad)]),
-		ThemeID: go2.Pointer(themeMap[int(themeID)]),
-	}
+	renderOpts := &d2svg.RenderOpts{}
 
 	compileOpts := &d2lib.CompileOptions{
 		LayoutResolver: layoutResolver,
