@@ -5,12 +5,6 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2.Net", "src\d2.Net\d2.Net.csproj", "{49592517-A5C2-40A6-96C7-2A6E58E5329D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2.Net.ConsoleApp", "src\d2.Net.ConsoleApp\d2.Net.ConsoleApp.csproj", "{2F426D23-0435-4ED0-9578-9D461902A0B8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2.Net.App", "src\d2.Net.App\d2.Net.App.csproj", "{6D6322B9-E4D7-45D8-985E-F26E0C4A15E6}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "d2.Net.Diagrams", "src\d2.Net.Diagrams\d2.Net.Diagrams.csproj", "{5E0D620B-9DED-4BCD-BE85-7F385435E66C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,17 +18,5 @@ Global
 		{49592517-A5C2-40A6-96C7-2A6E58E5329D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49592517-A5C2-40A6-96C7-2A6E58E5329D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49592517-A5C2-40A6-96C7-2A6E58E5329D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2F426D23-0435-4ED0-9578-9D461902A0B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2F426D23-0435-4ED0-9578-9D461902A0B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2F426D23-0435-4ED0-9578-9D461902A0B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2F426D23-0435-4ED0-9578-9D461902A0B8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6D6322B9-E4D7-45D8-985E-F26E0C4A15E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6D6322B9-E4D7-45D8-985E-F26E0C4A15E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6D6322B9-E4D7-45D8-985E-F26E0C4A15E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6D6322B9-E4D7-45D8-985E-F26E0C4A15E6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5E0D620B-9DED-4BCD-BE85-7F385435E66C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5E0D620B-9DED-4BCD-BE85-7F385435E66C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5E0D620B-9DED-4BCD-BE85-7F385435E66C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5E0D620B-9DED-4BCD-BE85-7F385435E66C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
