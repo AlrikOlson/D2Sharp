@@ -165,12 +165,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Download NuGet package
-      uses: actions/download-artifact@v3
-      with:
-        name: nuget-package
-
-    - name: Get version
+    - name: Get current version
       id: get_version
       run: |
         VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
@@ -178,28 +173,52 @@ jobs:
         if [ ! -z "$SUFFIX" ]; then
           VERSION="$VERSION-$SUFFIX"
         fi
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "CURRENT_VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Get latest release version
+      id: get_latest_release
+      run: |
+        LATEST_RELEASE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name | sed 's/^v//')
+        echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_OUTPUT
+
+    - name: Compare versions
+      id: compare_versions
+      run: |
+        if [ "${{ steps.get_version.outputs.CURRENT_VERSION }}" != "${{ steps.get_latest_release.outputs.LATEST_RELEASE }}" ]; then
+          echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download NuGet package
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      uses: actions/download-artifact@v3
+      with:
+        name: nuget-package
 
     - name: Create Release
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ steps.get_version.outputs.VERSION }}
-        release_name: Release ${{ steps.get_version.outputs.VERSION }}
+        tag_name: v${{ steps.get_version.outputs.CURRENT_VERSION }}
+        release_name: Release ${{ steps.get_version.outputs.CURRENT_VERSION }}
         draft: false
         prerelease: true
 
     - name: Upload Release Asset
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.VERSION }}.nupkg
-        asset_name: ${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.VERSION }}.nupkg
+        asset_path: ./${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.CURRENT_VERSION }}.nupkg
+        asset_name: ${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.CURRENT_VERSION }}.nupkg
         asset_content_type: application/octet-stream
 
     - name: Publish to NuGet
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
       run: dotnet nuget push ./*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
