@@ -8,12 +8,16 @@
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
         textarea { width: 100%; height: 200px; }
         #result { margin-top: 20px; }
+        .error { color: red; }
+        .error-line { font-family: monospace; white-space: pre; background-color: #ffeeee; padding: 5px; border-radius: 3px; }
+        .error-highlight { background-color: #ff6666; color: white; font-weight: bold; }
     </style>
 </head>
 <body>
     <h1>D2Sharp Web Demo</h1>
     <textarea id="script" placeholder="Enter your D2 script here...">direction: right
-A -> B -> C</textarea>
+A -> B ->
+C -> D</textarea>
     <button onclick="renderDiagram()">Render Diagram</button>
     <div id="result"></div>
 
@@ -33,11 +37,16 @@ A -> B -> C</textarea>
                     const svg = await response.text();
                     result.innerHTML = svg;
                 } else {
-                    const error = await response.text();
-                    result.textContent = `Error: ${error}`;
+                    const error = await response.json();
+                    let errorMessage = `<p class="error">Error: ${error.message}</p>`;
+                    if (error.lineNumber && error.column) {
+                        errorMessage += `<p class="error">At line ${error.lineNumber}, column ${error.column}:</p>`;
+                        errorMessage += `<div class="error-line">${error.highlightedLineParts.beforeError}<span class="error-highlight">${error.highlightedLineParts.errorPart}</span>${error.highlightedLineParts.afterError}</div>`;
+                    }
+                    result.innerHTML = errorMessage;
                 }
             } catch (error) {
-                result.textContent = `Error: ${error.message}`;
+                result.innerHTML = `<p class="error">Error: ${error.message}</p>`;
             }
         }
     </script>

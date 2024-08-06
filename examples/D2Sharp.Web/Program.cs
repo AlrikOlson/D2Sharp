@@ -19,14 +19,29 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
         return Results.BadRequest("Script is required");
     }
 
-    try
+    var result = d2Wrapper.RenderDiagram(request.Script);
+
+    if (result.IsSuccess)
     {
-        var svg = d2Wrapper.RenderDiagram(request.Script);
-        return Results.Content(svg, "image/svg+xml");
+        return Results.Content(result.Svg, "image/svg+xml");
     }
-    catch (Exception ex)
+    else
     {
-        return Results.BadRequest($"Error rendering diagram: {ex.Message}");
+        var highlightedParts = result.Error.GetHighlightedLineParts();
+        var errorResponse = new
+        {
+            message = result.Error.Message,
+            lineNumber = result.Error.LineNumber,
+            column = result.Error.Column,
+            lineContent = result.Error.LineContent,
+            highlightedLineParts = new
+            {
+                beforeError = highlightedParts.beforeError,
+                errorPart = highlightedParts.errorPart,
+                afterError = highlightedParts.afterError
+            }
+        };
+        return Results.BadRequest(errorResponse);
     }
 });
 
