@@ -3,24 +3,8 @@ name: Build, Package, and Release
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'examples/**'
-      - '**.csproj'
-      - '**.sln'
-      - 'packages.lock.json'
-      - 'go.mod'
-      - 'go.sum'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'src/**'
-      - 'examples/**'
-      - '**.csproj'
-      - '**.sln'
-      - 'packages.lock.json'
-      - 'go.mod'
-      - 'go.sum'
 
 permissions:
   contents: write
@@ -104,18 +88,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+
+    - name: Check for relevant changes
+      id: check_changes
+      run: |
+        if git diff --name-only HEAD^ HEAD | grep -qE '^src/|^examples/|\.csproj$|\.sln$|packages\.lock\.json$|go\.mod$|go\.sum$'; then
+          echo "Relevant changes detected"
+          echo "run_package=true" >> $GITHUB_OUTPUT
+        else
+          echo "No relevant changes detected"
+          echo "run_package=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Setup .NET
+      if: steps.check_changes.outputs.run_package == 'true'
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Download artifacts
+      if: steps.check_changes.outputs.run_package == 'true'
       uses: actions/download-artifact@v3
       with:
         path: artifacts
 
     - name: Prepare files for packaging
+      if: steps.check_changes.outputs.run_package == 'true'
       run: |
         mkdir -p package/lib/net8.0
         mkdir -p package/runtimes/win-x64/native
@@ -128,6 +128,7 @@ jobs:
         cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
 
     - name: Get version
+      if: steps.check_changes.outputs.run_package == 'true'
       id: get_version
       run: |
         VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
@@ -138,6 +139,7 @@ jobs:
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Create nuspec file
+      if: steps.check_changes.outputs.run_package == 'true'
       run: |
         cat << EOF > D2Sharp.nuspec
         <?xml version="1.0" encoding="utf-8"?>
@@ -166,13 +168,20 @@ jobs:
         EOF
 
     - name: Pack NuGet package
+      if: steps.check_changes.outputs.run_package == 'true'
       run: nuget pack D2Sharp.nuspec -BasePath package
 
     - name: Upload NuGet package
+      if: steps.check_changes.outputs.run_package == 'true'
       uses: actions/upload-artifact@v3
       with:
         name: nuget-package
         path: ./*.nupkg
+
+    - name: Skip packaging
+      if: steps.check_changes.outputs.run_package != 'true'
+      run: |
+        echo "No relevant changes for packaging, skipping this job"
 
   release:
     needs: package
@@ -180,8 +189,22 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+
+    - name: Check for relevant changes
+      id: check_changes
+      run: |
+        if git diff --name-only HEAD^ HEAD | grep -qE '^src/|^examples/|\.csproj$|\.sln$|packages\.lock\.json$|go\.mod$|go\.sum$'; then
+          echo "Relevant changes detected"
+          echo "run_release=true" >> $GITHUB_OUTPUT
+        else
+          echo "No relevant changes detected"
+          echo "run_release=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Get current version
+      if: steps.check_changes.outputs.run_release == 'true'
       id: get_version
       run: |
         VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
@@ -192,12 +215,14 @@ jobs:
         echo "CURRENT_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Get latest release version
+      if: steps.check_changes.outputs.run_release == 'true'
       id: get_latest_release
       run: |
         LATEST_RELEASE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name | sed 's/^v//')
         echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_OUTPUT
 
     - name: Compare versions
+      if: steps.check_changes.outputs.run_release == 'true'
       id: compare_versions
       run: |
         if [ "${{ steps.get_version.outputs.CURRENT_VERSION }}" != "${{ steps.get_latest_release.outputs.LATEST_RELEASE }}" ]; then
@@ -207,13 +232,13 @@ jobs:
         fi
 
     - name: Download NuGet package
-      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
       uses: actions/download-artifact@v3
       with:
         name: nuget-package
 
     - name: Create Release
-      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -225,7 +250,7 @@ jobs:
         prerelease: true
 
     - name: Upload Release Asset
-      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -236,5 +261,10 @@ jobs:
         asset_content_type: application/octet-stream
 
     - name: Publish to NuGet
-      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
       run: dotnet nuget push ./*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+
+    - name: Skip release
+      if: steps.check_changes.outputs.run_release != 'true'
+      run: |
+        echo "No relevant changes for release, skipping this job"
