@@ -49,6 +49,36 @@ catch (Exception ex)
 }
 ```
 
+## Error Handling
+
+The `RenderDiagram` method now returns a `RenderResult` object, which includes both the rendered SVG (if successful) and detailed error information (if rendering failed). Here's how you can use it:
+
+```csharp
+var wrapper = new D2Wrapper();
+string script = @"
+A -> B
+B ->  // This line has an error
+C -> D
+";
+
+var result = wrapper.RenderDiagram(script);
+
+if (result.IsSuccess)
+{
+    Console.WriteLine("Diagram rendered successfully:");
+    Console.WriteLine(result.Svg);
+}
+else
+{
+    Console.WriteLine("Error rendering diagram:");
+    Console.WriteLine($"Message: {result.Error.Message}");
+    if (result.Error.LineNumber.HasValue)
+    {
+        Console.WriteLine($"Line {result.Error.LineNumber}: {result.Error.LineContent}");
+    }
+}
+```
+
 ## Features
 
 - Render D2 diagrams as SVG
