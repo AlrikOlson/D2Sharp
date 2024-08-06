@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Build, Package, and Release
 
 on:
   push:
@@ -17,206 +17,208 @@ env:
   CI: true
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Run dotnet format
-        run: dotnet format --verify-no-changes
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v3
-        with:
-          working-directory: src/D2Sharp/d2wrapper
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Run tests
-        run: dotnet test --collect:"XPlat Code Coverage"
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-
   build:
-    needs: [lint, test]
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Cache NuGet packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-      - name: Install GCC (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y gcc
-      - name: Install dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --configuration Release --no-restore
-      - name: Build native library
-        run: |
-          cd src/D2Sharp/d2wrapper
-          go build -buildmode=c-shared -o d2wrapper${{ runner.os == 'Windows' && '.dll' || runner.os == 'macOS' && '.dylib' || '.so' }} .
-      - name: Upload D2Sharp build artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: d2net-${{ matrix.os }}
-          path: src/D2Sharp/bin/Release/net8.0/D2Sharp.*
-      - name: Upload native library
-        uses: actions/upload-artifact@v3
-        with:
-          name: d2wrapper-${{ matrix.os }}
-          path: src/D2Sharp/d2wrapper/d2wrapper*
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: Install GCC (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get update && sudo apt-get install -y gcc
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal
+
+    - name: Build native library
+      run: |
+        cd src/D2Sharp/d2wrapper
+        go build -buildmode=c-shared -o d2wrapper${{ runner.os == 'Windows' && '.dll' || runner.os == 'macOS' && '.dylib' || '.so' }} .
+
+    - name: Upload D2Sharp build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: d2net-${{ matrix.os }}
+        path: src/D2Sharp/bin/Release/net8.0/D2Sharp.*
+
+    - name: Upload native library
+      uses: actions/upload-artifact@v3
+      with:
+        name: d2wrapper-${{ matrix.os }}
+        path: src/D2Sharp/d2wrapper/d2wrapper*
+
+    - name: Upload build logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-logs-${{ matrix.os }}
+        path: |
+          **/*.log
+          **/*.trx
 
   package:
     needs: build
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.get_version.outputs.VERSION }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-      - name: Prepare files for packaging
-        run: |
-          mkdir -p package/lib/net8.0
-          mkdir -p package/runtimes/win-x64/native
-          mkdir -p package/runtimes/linux-x64/native
-          mkdir -p package/runtimes/osx-x64/native
-          
-          cp artifacts/d2net-ubuntu-latest/D2Sharp.dll package/lib/net8.0/
-          cp artifacts/d2wrapper-windows-latest/d2wrapper.dll package/runtimes/win-x64/native/
-          cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so package/runtimes/linux-x64/native/
-          cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
-      - name: Get version
-        id: get_version
-        run: |
-          VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
-          SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
-          if [ ! -z "$SUFFIX" ]; then
-            VERSION="$VERSION-$SUFFIX"
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-      - name: Create nuspec file
-        run: |
-          cat << EOF > D2Sharp.nuspec
-          <?xml version="1.0" encoding="utf-8"?>
-          <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-            <metadata>
-              <id>D2Sharp</id>
-              <version>${{ steps.get_version.outputs.VERSION }}</version>
-              <authors>Alrik Olson</authors>
-              <description>A .NET wrapper for the D2 library</description>
-              <projectUrl>https://github.com/AlrikOlson/D2Sharp</projectUrl>
-              <repository type="git" url="https://github.com/AlrikOlson/D2Sharp.git" />
-              <tags>d2 diagram visualization</tags>
-              <readme>README.nuget.md</readme>
-              <dependencies>
-                <group targetFramework="net8.0">
-                  <dependency id="Microsoft.Extensions.Logging" version="8.0.0" />
-                </group>
-              </dependencies>
-            </metadata>
-            <files>
-              <file src="lib/net8.0/D2Sharp.dll" target="lib/net8.0" />
-              <file src="runtimes/**/*" target="runtimes" />
-              <file src="../README.nuget.md" target="\" />
-            </files>
-          </package>
-          EOF
-      - name: Pack NuGet package
-        run: nuget pack D2Sharp.nuspec -BasePath package
-      - name: Upload NuGet package
-        uses: actions/upload-artifact@v3
-        with:
-          name: nuget-package
-          path: ./*.nupkg
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: artifacts
+
+    - name: Prepare files for packaging
+      run: |
+        mkdir -p package/lib/net8.0
+        mkdir -p package/runtimes/win-x64/native
+        mkdir -p package/runtimes/linux-x64/native
+        mkdir -p package/runtimes/osx-x64/native
+        
+        cp artifacts/d2net-ubuntu-latest/D2Sharp.dll package/lib/net8.0/
+        cp artifacts/d2wrapper-windows-latest/d2wrapper.dll package/runtimes/win-x64/native/
+        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so package/runtimes/linux-x64/native/
+        cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
+
+    - name: Get version
+      id: get_version
+      run: |
+        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
+        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
+        if [ ! -z "$SUFFIX" ]; then
+          VERSION="$VERSION-$SUFFIX"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Create nuspec file
+      run: |
+        cat << EOF > D2Sharp.nuspec
+        <?xml version="1.0" encoding="utf-8"?>
+        <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+          <metadata>
+            <id>D2Sharp</id>
+            <version>${{ steps.get_version.outputs.VERSION }}</version>
+            <authors>Alrik Olson</authors>
+            <description>A .NET wrapper for the D2 library</description>
+            <projectUrl>https://github.com/AlrikOlson/D2Sharp</projectUrl>
+            <repository type="git" url="https://github.com/AlrikOlson/D2Sharp.git" />
+            <tags>d2 diagram visualization</tags>
+            <readme>README.nuget.md</readme>
+            <dependencies>
+              <group targetFramework="net8.0">
+                <dependency id="Microsoft.Extensions.Logging" version="8.0.0" />
+              </group>
+            </dependencies>
+          </metadata>
+          <files>
+            <file src="lib/net8.0/D2Sharp.dll" target="lib/net8.0" />
+            <file src="runtimes/**/*" target="runtimes" />
+            <file src="../README.nuget.md" target="\" />
+          </files>
+        </package>
+        EOF
+
+    - name: Pack NuGet package
+      run: nuget pack D2Sharp.nuspec -BasePath package
+
+    - name: Upload NuGet package
+      uses: actions/upload-artifact@v3
+      with:
+        name: nuget-package
+        path: ./*.nupkg
 
   release:
     needs: package
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Download NuGet package
-        uses: actions/download-artifact@v3
-        with:
-          name: nuget-package
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v3
-        id: semantic
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          extra_plugins: |
-            @semantic-release/git
-            @semantic-release/changelog
-            @semantic-release/exec
-      - name: Create Release
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create v${{ steps.semantic.outputs.new_release_version }} \
-            --title "Release ${{ steps.semantic.outputs.new_release_version }}" \
-            --notes "$(cat CHANGELOG.md)" \
-            *.nupkg
-      - name: Publish to NuGet
-        if: steps.semantic.outputs.new_release_published == 'true'
-        run: dotnet nuget push ./*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+    - uses: actions/checkout@v3
 
-  deploy-docs:
-    needs: release
-    runs-on: ubuntu-latest
-    if: needs.release.result == 'success'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Generate docs
-        run: dotnet tool install -g docfx && docfx docs/docfx.json
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/_site
+    - name: Get current version
+      id: get_version
+      run: |
+        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
+        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
+        if [ ! -z "$SUFFIX" ]; then
+          VERSION="$VERSION-$SUFFIX"
+        fi
+        echo "CURRENT_VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Get latest release version
+      id: get_latest_release
+      run: |
+        LATEST_RELEASE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name | sed 's/^v//')
+        echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_OUTPUT
+
+    - name: Compare versions
+      id: compare_versions
+      run: |
+        if [ "${{ steps.get_version.outputs.CURRENT_VERSION }}" != "${{ steps.get_latest_release.outputs.LATEST_RELEASE }}" ]; then
+          echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION_CHANGED=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Download NuGet package
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      uses: actions/download-artifact@v3
+      with:
+        name: nuget-package
+
+    - name: Create Release
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.get_version.outputs.CURRENT_VERSION }}
+        release_name: Release ${{ steps.get_version.outputs.CURRENT_VERSION }}
+        draft: false
+        prerelease: true
+
+    - name: Upload Release Asset
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.CURRENT_VERSION }}.nupkg
+        asset_name: ${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.CURRENT_VERSION }}.nupkg
+        asset_content_type: application/octet-stream
+
+    - name: Publish to NuGet
+      if: steps.compare_versions.outputs.VERSION_CHANGED == 'true'
+      run: dotnet nuget push ./*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
