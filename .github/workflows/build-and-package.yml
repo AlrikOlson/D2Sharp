@@ -3,8 +3,24 @@ name: Build, Package, and Release
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'examples/**'
+      - '**.csproj'
+      - '**.sln'
+      - 'packages.lock.json'
+      - 'go.mod'
+      - 'go.sum'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'examples/**'
+      - '**.csproj'
+      - '**.sln'
+      - 'packages.lock.json'
+      - 'go.mod'
+      - 'go.sum'
 
 permissions:
   contents: write
