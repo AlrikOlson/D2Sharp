@@ -4,7 +4,7 @@ This file lists the third-party software components used by D2Sharp.
 
 D2 (https://github.com/terrastruct/d2)
 License: Mozilla Public License 2.0
-License URL: https://mozilla.org/MPL/2.0/
+License URL: https://github.com/terrastruct/d2/blob/master/LICENSE.txt
 
 D2Sharp uses prebuilt binaries from D2, which is licensed under the Mozilla Public License 2.0. 
 The source code for D2 can be obtained from its GitHub repository at https://github.com/terrastruct/d2.
