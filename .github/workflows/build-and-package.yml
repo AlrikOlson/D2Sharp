@@ -91,7 +91,7 @@ jobs:
 
   package:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v3
       with:
@@ -99,6 +99,7 @@ jobs:
 
     - name: Check for relevant changes
       id: check_changes
+      shell: bash
       run: |
         if git diff --name-only HEAD^ HEAD | grep -qE '^src/|^examples/|\.csproj$|\.sln$|packages\.lock\.json$|go\.mod$|go\.sum$'; then
           echo "Relevant changes detected"
@@ -138,6 +139,7 @@ jobs:
 
     - name: Prepare files for packaging
       if: steps.check_changes.outputs.run_package == 'true'
+      shell: bash
       run: |
         mkdir -p package/lib/net8.0
         mkdir -p package/runtimes/win-x64/native
@@ -152,6 +154,7 @@ jobs:
     - name: Get version
       if: steps.check_changes.outputs.run_package == 'true'
       id: get_version
+      shell: bash
       run: |
         VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
         SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
@@ -162,6 +165,7 @@ jobs:
 
     - name: Create nuspec file
       if: steps.check_changes.outputs.run_package == 'true'
+      shell: bash
       run: |
         cat << EOF > D2Sharp.nuspec
         <?xml version="1.0" encoding="utf-8"?>
@@ -207,7 +211,7 @@ jobs:
 
   release:
     needs: package
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - uses: actions/checkout@v3
@@ -216,6 +220,7 @@ jobs:
 
     - name: Check for relevant changes
       id: check_changes
+      shell: bash
       run: |
         if git diff --name-only HEAD^ HEAD | grep -qE '^src/|^examples/|\.csproj$|\.sln$|packages\.lock\.json$|go\.mod$|go\.sum$'; then
           echo "Relevant changes detected"
@@ -231,9 +236,16 @@ jobs:
       with:
         nuget-version: '6.x'
 
+    - name: Setup .NET
+      if: steps.check_changes.outputs.run_release == 'true'
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
     - name: Get current version
       if: steps.check_changes.outputs.run_release == 'true'
       id: get_version
+      shell: bash
       run: |
         VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
         SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
@@ -245,6 +257,7 @@ jobs:
     - name: Get latest release version
       if: steps.check_changes.outputs.run_release == 'true'
       id: get_latest_release
+      shell: bash
       run: |
         LATEST_RELEASE=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name | sed 's/^v//')
         echo "LATEST_RELEASE=$LATEST_RELEASE" >> $GITHUB_OUTPUT
@@ -252,6 +265,7 @@ jobs:
     - name: Compare versions
       if: steps.check_changes.outputs.run_release == 'true'
       id: compare_versions
+      shell: bash
       run: |
         if [ "${{ steps.get_version.outputs.CURRENT_VERSION }}" != "${{ steps.get_latest_release.outputs.LATEST_RELEASE }}" ]; then
           echo "VERSION_CHANGED=true" >> $GITHUB_OUTPUT
