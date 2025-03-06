@@ -110,7 +110,7 @@ jobs:
 
     - name: Download artifacts
       if: steps.check_changes.outputs.run_package == 'true'
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
       with:
         path: artifacts
 
@@ -233,7 +233,7 @@ jobs:
 
     - name: Download NuGet package
       if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4.1.7
       with:
         name: nuget-package
 
