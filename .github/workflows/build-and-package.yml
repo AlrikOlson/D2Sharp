@@ -36,8 +36,14 @@ jobs:
       with:
         go-version: ${{ env.GO_VERSION }}
 
+    - name: Setup NuGet
+      uses: nuget/setup-nuget@v2
+      with:
+        nuget-version: '6.x'
+
     - name: Cache NuGet packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
+      id: cache
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
@@ -107,6 +113,22 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup NuGet
+      if: steps.check_changes.outputs.run_package == 'true'
+      uses: nuget/setup-nuget@v2
+      with:
+        nuget-version: '6.x'
+
+    - name: Cache NuGet packages
+      if: steps.check_changes.outputs.run_package == 'true'
+      uses: actions/cache@v4
+      id: cache
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
 
     - name: Download artifacts
       if: steps.check_changes.outputs.run_package == 'true'
@@ -202,6 +224,12 @@ jobs:
           echo "No relevant changes detected"
           echo "run_release=false" >> $GITHUB_OUTPUT
         fi
+
+    - name: Setup NuGet
+      if: steps.check_changes.outputs.run_release == 'true'
+      uses: nuget/setup-nuget@v2
+      with:
+        nuget-version: '6.x'
 
     - name: Get current version
       if: steps.check_changes.outputs.run_release == 'true'
