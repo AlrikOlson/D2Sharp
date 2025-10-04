@@ -1,6 +1,9 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using D2Sharp.Caching;
+using D2Sharp.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.RegularExpressions;
@@ -13,6 +16,9 @@ namespace D2Sharp;
 public partial class D2Wrapper : IDisposable
 {
     private readonly ILogger<D2Wrapper> _logger;
+    private readonly D2WrapperOptions _options;
+    private readonly RenderCache? _cache;
+    private readonly SemaphoreSlim? _concurrencySemaphore;
     private int _disposed; // 0 = false, 1 = true (thread-safe via Interlocked)
 
     private const int MaxScriptLength = 10_000_000; // 10MB character limit
@@ -27,8 +33,33 @@ public partial class D2Wrapper : IDisposable
     /// </summary>
     /// <param name="logger">Optional logger for diagnostic output.</param>
     public D2Wrapper(ILogger<D2Wrapper>? logger = null)
+        : this(null, logger)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="D2Wrapper"/> class with configuration options.
+    /// </summary>
+    /// <param name="options">Configuration options for caching, telemetry, and concurrency control.</param>
+    /// <param name="logger">Optional logger for diagnostic output.</param>
+    public D2Wrapper(D2WrapperOptions? options, ILogger<D2Wrapper>? logger = null)
     {
         _logger = logger ?? NullLogger<D2Wrapper>.Instance;
+        _options = options ?? new D2WrapperOptions();
+
+        // Initialize cache if enabled
+        if (_options.EnableCaching)
+        {
+            _cache = new RenderCache(_options);
+            _logger.LogDebug("Render cache initialized with size {CacheSize}", _options.CacheSize);
+        }
+
+        // Initialize concurrency semaphore if max concurrent renders is set
+        if (_options.MaxConcurrentRenders > 0)
+        {
+            _concurrencySemaphore = new SemaphoreSlim(_options.MaxConcurrentRenders, _options.MaxConcurrentRenders);
+            _logger.LogDebug("Concurrency limit set to {MaxConcurrentRenders}", _options.MaxConcurrentRenders);
+        }
     }
 
     [LibraryImport("d2wrapper", EntryPoint = "RenderDiagram", StringMarshalling = StringMarshalling.Utf8)]
@@ -58,8 +89,86 @@ public partial class D2Wrapper : IDisposable
         if (script.Length > MaxScriptLength)
             throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
 
-        _logger.LogDebug("Calling RenderDiagram with script");
+        // Generate diagnostic ID if enabled
+        var diagnosticId = _options.EnableDiagnosticIds
+            ? Activity.Current?.Id ?? Guid.NewGuid().ToString("N")
+            : null;
 
+        // Start Activity span for distributed tracing
+        using var activity = _options.EnableTelemetry
+            ? D2SharpActivitySource.Source.StartActivity("RenderDiagram")
+            : null;
+
+        if (activity != null)
+        {
+            activity.SetTag(D2SharpActivitySource.Tags.ScriptLength, script.Length);
+            activity.SetTag(D2SharpActivitySource.Tags.LayoutEngine, options?.Layout?.ToString() ?? "dagre");
+            activity.SetTag(D2SharpActivitySource.Tags.ThemeId, options?.ThemeId);
+            activity.SetTag(D2SharpActivitySource.Tags.SketchMode, options?.Sketch ?? false);
+            if (diagnosticId != null)
+                activity.SetTag(D2SharpActivitySource.Tags.DiagnosticId, diagnosticId);
+        }
+
+        _logger.LogDebug("Calling RenderDiagram with script (DiagnosticId: {DiagnosticId})", diagnosticId);
+
+        // Check cache before rendering
+        if (_options.EnableCaching && _cache?.TryGet(script, options, out var cachedResult) == true)
+        {
+            if (_options.EnableMetrics)
+                D2SharpEventCounters.Instance.RecordCacheAccess(true);
+
+            activity?.SetTag(D2SharpActivitySource.Tags.CacheHit, true);
+            activity?.SetTag(D2SharpActivitySource.Tags.ResultStatus, "success");
+
+            _logger.LogDebug("Cache hit for diagram (DiagnosticId: {DiagnosticId})", diagnosticId);
+
+            return cachedResult! with { DiagnosticId = diagnosticId, FromCache = true };
+        }
+
+        if (_options.EnableCaching)
+        {
+            if (_options.EnableMetrics)
+                D2SharpEventCounters.Instance.RecordCacheAccess(false);
+            activity?.SetTag(D2SharpActivitySource.Tags.CacheHit, false);
+        }
+
+        // Record metrics
+        if (_options.EnableMetrics)
+            D2SharpEventCounters.Instance.RenderStarted();
+
+        var sw = Stopwatch.StartNew();
+        RenderResult? result = null;
+
+        try
+        {
+            result = RenderDiagramCore(script, options, diagnosticId);
+
+            // Store successful result in cache
+            if (_options.EnableCaching && result.IsSuccess && _cache != null)
+            {
+                _cache.Set(script, options, result, _options.CacheExpiration);
+                _logger.LogDebug("Stored result in cache (DiagnosticId: {DiagnosticId})", diagnosticId);
+            }
+
+            return result;
+        }
+        finally
+        {
+            sw.Stop();
+            if (_options.EnableMetrics)
+                D2SharpEventCounters.Instance.RenderCompleted(sw.Elapsed.TotalMilliseconds, result?.IsSuccess ?? false);
+
+            if (activity != null)
+            {
+                activity.SetTag(D2SharpActivitySource.Tags.ResultStatus, result?.IsSuccess == true ? "success" : "error");
+                if (result?.Error != null)
+                    activity.SetTag(D2SharpActivitySource.Tags.ErrorType, "compilation_error");
+            }
+        }
+    }
+
+    private RenderResult RenderDiagramCore(string script, RenderOptions? options, string? diagnosticId)
+    {
         // Serialize options to JSON
         string optionsJson = SerializeOptions(options);
 
@@ -91,28 +200,49 @@ public partial class D2Wrapper : IDisposable
                 if (errorMessage == null)
                 {
                     _logger.LogError("Failed to read error message from native library");
-                    return new RenderResult { Error = new D2Error { Message = "Unknown error from native library" } };
+                    return new RenderResult
+                    {
+                        Error = new D2Error { Message = "Unknown error from native library" },
+                        DiagnosticId = diagnosticId
+                    };
                 }
 
-                _logger.LogError("Diagram rendering failed: {ErrorMessage}", errorMessage);
-                return new RenderResult { Error = ParseError(errorMessage, script) };
+                _logger.LogError("Diagram rendering failed: {ErrorMessage} (DiagnosticId: {DiagnosticId})", errorMessage, diagnosticId);
+                return new RenderResult
+                {
+                    Error = ParseError(errorMessage, script),
+                    DiagnosticId = diagnosticId
+                };
             }
 
             if (svgPtr == IntPtr.Zero)
             {
                 _logger.LogError("RenderDiagramInternal returned null pointer");
-                return new RenderResult { Error = new D2Error { Message = "Rendering failed with null result" } };
+                return new RenderResult
+                {
+                    Error = new D2Error { Message = "Rendering failed with null result" },
+                    DiagnosticId = diagnosticId
+                };
             }
 
             var svg = Marshal.PtrToStringUTF8(svgPtr);
             if (svg == null)
             {
                 _logger.LogError("Failed to read SVG from native library");
-                return new RenderResult { Error = new D2Error { Message = "Failed to read SVG output" } };
+                return new RenderResult
+                {
+                    Error = new D2Error { Message = "Failed to read SVG output" },
+                    DiagnosticId = diagnosticId
+                };
             }
 
-            _logger.LogDebug("Rendered diagram successfully");
-            return new RenderResult { Svg = svg };
+            _logger.LogDebug("Rendered diagram successfully (DiagnosticId: {DiagnosticId})", diagnosticId);
+            return new RenderResult
+            {
+                Svg = svg,
+                DiagnosticId = diagnosticId,
+                FromCache = false
+            };
         }
         finally
         {
@@ -140,7 +270,7 @@ public partial class D2Wrapper : IDisposable
     /// <exception cref="ArgumentException">Thrown when script exceeds maximum length.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public Task<RenderResult> RenderDiagramAsync(string script, RenderOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<RenderResult> RenderDiagramAsync(string script, RenderOptions? options = null, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
 
@@ -150,7 +280,25 @@ public partial class D2Wrapper : IDisposable
         if (script.Length > MaxScriptLength)
             throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
 
-        return Task.Run(() =>
+        // Apply concurrency limit if configured
+        if (_concurrencySemaphore != null)
+        {
+            await _concurrencySemaphore.WaitAsync(cancellationToken);
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return RenderDiagram(script, options);
+                }, cancellationToken);
+            }
+            finally
+            {
+                _concurrencySemaphore.Release();
+            }
+        }
+
+        return await Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             return RenderDiagram(script, options);
@@ -300,7 +448,8 @@ public partial class D2Wrapper : IDisposable
         {
             if (disposing)
             {
-                // Dispose managed resources here if needed in the future
+                _cache?.Dispose();
+                _concurrencySemaphore?.Dispose();
                 _logger.LogDebug("D2Wrapper disposed");
             }
 
@@ -312,7 +461,7 @@ public partial class D2Wrapper : IDisposable
 /// <summary>
 /// Represents the result of a D2 diagram rendering operation.
 /// </summary>
-public class RenderResult
+public record RenderResult
 {
     /// <summary>
     /// Gets the rendered SVG output. Null if rendering failed.

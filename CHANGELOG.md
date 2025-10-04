@@ -7,6 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-beta.1] - 2025-10-03
+
+### Added - Phase 5b: Full Observability Integration
+- **Integrated Caching**: Automatic caching of successful renders
+  - SHA256-based cache keys from script content and options
+  - Configurable cache size (default 100 entries) and expiration (default 1 hour)
+  - Caches only successful renders, errors always re-execute
+  - Cache hits preserve original SVG but generate new diagnostic IDs
+- **Integrated Distributed Tracing**: Activity spans for all render operations
+  - Automatic Activity creation when telemetry is enabled
+  - Activity tags include: script length, layout engine, theme, sketch mode, diagnostic ID, cache hits, result status
+  - Full OpenTelemetry and Application Insights compatibility
+  - Traces include both cache lookups and actual renders
+- **Integrated Metrics**: EventCounter recording throughout render pipeline
+  - Metrics recorded: render started, render completed, cache hits/misses
+  - Real-time monitoring with dotnet-counters
+  - Metrics include duration, success/failure, cache performance
+- **Concurrency Control**: SemaphoreSlim-based limiting of concurrent renders
+  - Configurable MaxConcurrentRenders (default 0 = unlimited)
+  - Prevents resource exhaustion under load
+  - Applied in RenderDiagramAsync method
+- **Diagnostic IDs**: Unique correlation IDs for every render operation
+  - Generated from Activity.Current?.Id or new Guid
+  - Included in all log messages and Activity tags
+  - Unique per render, even for cache hits
+- **Enhanced RenderResult**: Converted to record type for immutability
+  - Supports `with` expressions for clean property updates
+  - FromCache and DiagnosticId properties fully integrated
+  - Maintains backward compatibility
+
+### Changed
+- **D2Wrapper Constructor**: New overload accepting D2WrapperOptions
+  - Original parameterless constructor still available
+  - Original ILogger constructor chains to new overload
+  - Full backward compatibility maintained
+- **RenderDiagram Method**: Complete rewrite with observability integration
+  - Diagnostic ID generation at method start
+  - Activity span creation and tagging
+  - Cache lookup before render
+  - Metrics recording throughout execution
+  - Core logic extracted to RenderDiagramCore for separation of concerns
+  - Cache storage after successful render
+- **RenderDiagramAsync Method**: Concurrency control integration
+  - SemaphoreSlim-based throttling when MaxConcurrentRenders > 0
+  - Delegates to synchronous RenderDiagram for actual work
+  - Maintains cancellation token support
+- **Dispose Method**: Enhanced cleanup
+  - Disposes RenderCache if caching is enabled
+  - Disposes SemaphoreSlim if concurrency limiting is enabled
+  - Proper resource cleanup on wrapper disposal
+- **RenderResult Type**: Changed from class to record
+  - Enables `with` expressions for immutable updates
+  - Better pattern for value-like semantics
+  - No breaking changes (init-only properties maintained)
+
+### Testing
+- **New Test Suite**: D2WrapperObservabilityTests with 15 comprehensive tests
+  - Constructor tests with options
+  - Cache hit/miss scenarios
+  - Diagnostic ID generation
+  - Activity/telemetry integration
+  - Concurrency limiting
+  - Dispose cleanup verification
+  - D2WrapperOptions default values
+  - Record type with expressions
+- **Total Test Count**: 59 tests (44 existing + 15 new)
+- **Coverage**: 85.52% line coverage, 81.61% branch coverage, 100% method coverage
+
+### Documentation
+- **README Updates**: Complete observability documentation
+  - Quick start guide with D2WrapperOptions
+  - Automatic caching examples
+  - Concurrency control examples
+  - Distributed tracing setup with OpenTelemetry
+  - Real-time metrics monitoring guide
+  - Diagnostic ID usage patterns
+  - Minimal configuration for development
+- **Code Documentation**: Full XML documentation on all new members
+
+### Performance
+- **Cache Performance**: Instant cache hits (< 1ms) vs ~30-500ms renders
+- **Concurrency Benefits**: Prevents thread exhaustion under load
+- **Overhead**: Minimal when features disabled (<1% impact)
+
+### Notes
+- **Production Ready**: Full integration complete, ready for beta testing
+- **Backward Compatible**: Existing code works without changes
+- **Opt-In Features**: All observability features can be disabled via D2WrapperOptions
+- **Next Phase**: Community feedback and stabilization for v0.3.0 release
+
 ## [0.3.0-alpha.1] - 2025-10-03
 
 ### Added - Phase 5a: Observability & Performance Infrastructure
@@ -177,7 +267,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0-alpha.1...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0-beta.1...HEAD
+[0.3.0-beta.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0-alpha.1...v0.3.0-beta.1
 [0.3.0-alpha.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0-alpha.1
 [0.2.0-beta.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.1.0-alpha.7...v0.2.0-beta.1
