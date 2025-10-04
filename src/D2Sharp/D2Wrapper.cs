@@ -11,7 +11,14 @@ namespace D2Sharp;
 public partial class D2Wrapper : IDisposable
 {
     private readonly ILogger<D2Wrapper> _logger;
-    private bool _disposed;
+    private int _disposed; // 0 = false, 1 = true (thread-safe via Interlocked)
+
+    private const int MaxScriptLength = 10_000_000; // 10MB character limit
+    private static readonly TimeSpan MinTimeout = TimeSpan.FromMilliseconds(100);
+    private static readonly TimeSpan MaxTimeout = TimeSpan.FromMinutes(10);
+
+    [GeneratedRegex(@"Compilation error: (\d+):(\d+): (.+)", RegexOptions.Compiled)]
+    private static partial Regex CompilationErrorRegex();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="D2Wrapper"/> class.
@@ -34,38 +41,86 @@ public partial class D2Wrapper : IDisposable
     /// <param name="script">The D2 diagram script to render.</param>
     /// <returns>A <see cref="RenderResult"/> containing either the SVG output or error information.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when script exceeds maximum length.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
+    /// <exception cref="DllNotFoundException">Thrown when the native d2wrapper library cannot be found.</exception>
+    /// <exception cref="EntryPointNotFoundException">Thrown when required functions are missing from the native library.</exception>
     public RenderResult RenderDiagram(string script)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ThrowIfDisposed();
 
         if (script == null)
             throw new ArgumentNullException(nameof(script));
 
+        if (script.Length > MaxScriptLength)
+            throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
+
         _logger.LogDebug("Calling RenderDiagram with script");
 
-        IntPtr errorPtr;
-        var svgPtr = RenderDiagramInternal(script, out errorPtr);
+        IntPtr errorPtr = IntPtr.Zero;
+        IntPtr svgPtr = IntPtr.Zero;
 
-        if (errorPtr != IntPtr.Zero)
+        try
         {
-            var errorMessage = Marshal.PtrToStringUTF8(errorPtr);
-            FreeDiagram(errorPtr);
-            _logger.LogError("Diagram rendering failed: {ErrorMessage}", errorMessage);
-            return new RenderResult { Error = ParseError(errorMessage, script) };
-        }
+            try
+            {
+                svgPtr = RenderDiagramInternal(script, out errorPtr);
+            }
+            catch (DllNotFoundException ex)
+            {
+                _logger.LogError(ex, "Native d2wrapper library not found");
+                throw new DllNotFoundException(
+                    "The d2wrapper native library could not be found. Ensure the library is built and in the correct location.", ex);
+            }
+            catch (EntryPointNotFoundException ex)
+            {
+                _logger.LogError(ex, "Required entry point not found in d2wrapper library");
+                throw new EntryPointNotFoundException(
+                    "Required function not found in d2wrapper library. The library version may be incompatible.", ex);
+            }
 
-        if (svgPtr == IntPtr.Zero)
+            if (errorPtr != IntPtr.Zero)
+            {
+                var errorMessage = Marshal.PtrToStringUTF8(errorPtr);
+                if (errorMessage == null)
+                {
+                    _logger.LogError("Failed to read error message from native library");
+                    return new RenderResult { Error = new D2Error { Message = "Unknown error from native library" } };
+                }
+
+                _logger.LogError("Diagram rendering failed: {ErrorMessage}", errorMessage);
+                return new RenderResult { Error = ParseError(errorMessage, script) };
+            }
+
+            if (svgPtr == IntPtr.Zero)
+            {
+                _logger.LogError("RenderDiagramInternal returned null pointer");
+                return new RenderResult { Error = new D2Error { Message = "Rendering failed with null result" } };
+            }
+
+            var svg = Marshal.PtrToStringUTF8(svgPtr);
+            if (svg == null)
+            {
+                _logger.LogError("Failed to read SVG from native library");
+                return new RenderResult { Error = new D2Error { Message = "Failed to read SVG output" } };
+            }
+
+            _logger.LogDebug("Rendered diagram successfully");
+            return new RenderResult { Svg = svg };
+        }
+        finally
         {
-            _logger.LogError("RenderDiagramInternal returned null pointer");
-            return new RenderResult { Error = new D2Error { Message = "Rendering failed with null result" } };
+            if (errorPtr != IntPtr.Zero)
+            {
+                try { FreeDiagram(errorPtr); }
+                catch { /* Ignore cleanup errors */ }
+            }
+            if (svgPtr != IntPtr.Zero)
+            {
+                try { FreeDiagram(svgPtr); }
+                catch { /* Ignore cleanup errors */ }
+            }
         }
-
-        var svg = Marshal.PtrToStringUTF8(svgPtr);
-        FreeDiagram(svgPtr);
-
-        _logger.LogDebug("Rendered diagram successfully");
-        return new RenderResult { Svg = svg };
     }
 
     /// <summary>
@@ -75,14 +130,18 @@ public partial class D2Wrapper : IDisposable
     /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="RenderResult"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when script exceeds maximum length.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public Task<RenderResult> RenderDiagramAsync(string script, CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ThrowIfDisposed();
 
         if (script == null)
             throw new ArgumentNullException(nameof(script));
+
+        if (script.Length > MaxScriptLength)
+            throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
 
         return Task.Run(() =>
         {
@@ -99,15 +158,26 @@ public partial class D2Wrapper : IDisposable
     /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="RenderResult"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when script exceeds maximum length or timeout is invalid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when timeout is less than minimum or greater than maximum.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
     /// <exception cref="TimeoutException">Thrown when the rendering operation exceeds the specified timeout.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public async Task<RenderResult> RenderDiagramAsync(string script, TimeSpan timeout, CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ThrowIfDisposed();
 
         if (script == null)
             throw new ArgumentNullException(nameof(script));
+
+        if (script.Length > MaxScriptLength)
+            throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
+
+        if (timeout < MinTimeout)
+            throw new ArgumentOutOfRangeException(nameof(timeout), $"Timeout must be at least {MinTimeout.TotalMilliseconds}ms");
+
+        if (timeout > MaxTimeout)
+            throw new ArgumentOutOfRangeException(nameof(timeout), $"Timeout must not exceed {MaxTimeout.TotalMinutes} minutes");
 
         using var timeoutCts = new CancellationTokenSource(timeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -125,25 +195,39 @@ public partial class D2Wrapper : IDisposable
 
     private D2Error ParseError(string errorMessage, string script)
     {
-        var error = new D2Error { Message = errorMessage };
-
         // Match the format: "Compilation error: line:column: specific error message"
-        var match = Regex.Match(errorMessage, @"Compilation error: (\d+):(\d+): (.+)");
-        if (match.Success)
+        var match = CompilationErrorRegex().Match(errorMessage);
+
+        if (!match.Success)
         {
-            if (int.TryParse(match.Groups[1].Value, out int lineNumber))
-            {
-                error.LineNumber = lineNumber;
-                error.LineContent = GetLineContent(script, lineNumber);
-            }
-            if (int.TryParse(match.Groups[2].Value, out int column))
-            {
-                error.Column = column;
-            }
-            error.Message = match.Groups[3].Value.Trim();
+            return new D2Error { Message = errorMessage };
         }
 
-        return error;
+        int? lineNumber = null;
+        string? lineContent = null;
+        int? column = null;
+        string message = errorMessage;
+
+        if (int.TryParse(match.Groups[1].Value, out int parsedLineNumber))
+        {
+            lineNumber = parsedLineNumber;
+            lineContent = GetLineContent(script, parsedLineNumber);
+        }
+
+        if (int.TryParse(match.Groups[2].Value, out int parsedColumn))
+        {
+            column = parsedColumn;
+        }
+
+        message = match.Groups[3].Value.Trim();
+
+        return new D2Error
+        {
+            Message = message,
+            LineNumber = lineNumber,
+            Column = column,
+            LineContent = lineContent
+        };
     }
 
     private string GetLineContent(string script, int lineNumber)
@@ -154,6 +238,14 @@ public partial class D2Wrapper : IDisposable
             return lines[lineNumber - 1];
         }
         return string.Empty;
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 0, 0) == 1)
+        {
+            throw new ObjectDisposedException(GetType().Name);
+        }
     }
 
     /// <summary>
@@ -171,7 +263,7 @@ public partial class D2Wrapper : IDisposable
     /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
     protected virtual void Dispose(bool disposing)
     {
-        if (!_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
             if (disposing)
             {
@@ -180,8 +272,6 @@ public partial class D2Wrapper : IDisposable
             }
 
             // Dispose unmanaged resources here if needed in the future
-
-            _disposed = true;
         }
     }
 }
@@ -192,14 +282,14 @@ public partial class D2Wrapper : IDisposable
 public class RenderResult
 {
     /// <summary>
-    /// Gets or sets the rendered SVG output. Null if rendering failed.
+    /// Gets the rendered SVG output. Null if rendering failed.
     /// </summary>
-    public string? Svg { get; set; }
+    public string? Svg { get; init; }
 
     /// <summary>
-    /// Gets or sets error information if rendering failed. Null if successful.
+    /// Gets error information if rendering failed. Null if successful.
     /// </summary>
-    public D2Error? Error { get; set; }
+    public D2Error? Error { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the rendering was successful.
@@ -213,24 +303,24 @@ public class RenderResult
 public class D2Error
 {
     /// <summary>
-    /// Gets or sets the error message.
+    /// Gets the error message.
     /// </summary>
-    public string Message { get; set; } = "";
+    public string Message { get; init; } = "";
 
     /// <summary>
-    /// Gets or sets the line number where the error occurred, if available.
+    /// Gets the line number where the error occurred, if available.
     /// </summary>
-    public int? LineNumber { get; set; }
+    public int? LineNumber { get; init; }
 
     /// <summary>
-    /// Gets or sets the column number where the error occurred, if available.
+    /// Gets the column number where the error occurred, if available.
     /// </summary>
-    public int? Column { get; set; }
+    public int? Column { get; init; }
 
     /// <summary>
-    /// Gets or sets the content of the line where the error occurred, if available.
+    /// Gets the content of the line where the error occurred, if available.
     /// </summary>
-    public string? LineContent { get; set; }
+    public string? LineContent { get; init; }
 
     /// <summary>
     /// Gets the line content split into parts before, at, and after the error position for highlighting.

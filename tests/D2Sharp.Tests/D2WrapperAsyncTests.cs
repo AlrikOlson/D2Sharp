@@ -85,7 +85,7 @@ A -> E
         cts.Cancel(); // Cancel immediately
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             wrapper.RenderDiagramAsync(script, cts.Token));
     }
 
@@ -106,18 +106,28 @@ A -> E
     }
 
     [Fact]
-    public async Task RenderDiagramAsync_WithVeryShortTimeout_ThrowsTimeoutException()
+    public async Task RenderDiagramAsync_WithTimeoutBelowMinimum_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
         var wrapper = new D2Wrapper();
-        // Complex script that might take longer
-        var script = @"
-direction: right
-" + string.Join("\n", Enumerable.Range(1, 100).Select(i => $"A{i} -> B{i}"));
-        var timeout = TimeSpan.FromMilliseconds(1); // Very short timeout
+        var script = "A -> B";
+        var timeout = TimeSpan.FromMilliseconds(50); // Below minimum of 100ms
 
         // Act & Assert
-        await Assert.ThrowsAnyAsync<TimeoutException>(() =>
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            wrapper.RenderDiagramAsync(script, timeout));
+    }
+
+    [Fact]
+    public async Task RenderDiagramAsync_WithTimeoutAboveMaximum_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        var wrapper = new D2Wrapper();
+        var script = "A -> B";
+        var timeout = TimeSpan.FromMinutes(11); // Above maximum of 10 minutes
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
             wrapper.RenderDiagramAsync(script, timeout));
     }
 
@@ -132,7 +142,7 @@ direction: right
         cts.Cancel(); // Cancel immediately
 
         // Act & Assert
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             wrapper.RenderDiagramAsync(script, timeout, cts.Token));
     }
 

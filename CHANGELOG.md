@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added - Phase 2: Critical Reliability
+### Added - Phase 2: Critical Reliability & Production Hardening
 - **Async/await support**: RenderDiagramAsync methods with CancellationToken support
-- **Timeout protection**: Configurable rendering timeout (default: 30s, production: 15s)
-- **IDisposable pattern**: Proper resource cleanup and disposal support
+- **Timeout protection**: Configurable rendering timeout (default: 30s, production: 15s) with validation (100ms min, 10min max)
+- **IDisposable pattern**: Proper resource cleanup and disposal support with thread-safe implementation
+- **Thread-safe disposal**: Uses Interlocked operations for concurrent Dispose() safety
+- **Memory leak prevention**: Try-finally blocks ensure P/Invoke pointer cleanup even on exceptions
+- **Null safety**: Added null checks for all Marshal.PtrToStringUTF8 calls
+- **Native library error handling**: Catch and wrap DllNotFoundException and EntryPointNotFoundException with helpful messages
+- **Input validation**: 10MB script length limit, timeout range validation
+- **Immutable data models**: RenderResult and D2Error use init-only setters
+- **Performance optimization**: GeneratedRegex for compilation error parsing (removes runtime regex compilation overhead)
 - **Comprehensive async unit tests**: 15+ tests for async behavior, cancellation, timeout, and disposal
 - **Integration tests**: WebApplicationFactory-based tests for API endpoints
 - **Timeout exception handling**: 408 status code for timeouts, 499 for cancellations

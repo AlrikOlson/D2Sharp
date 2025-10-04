@@ -12,9 +12,24 @@ Write-Host "Current directory: $(Get-Location)"
 $env:CGO_ENABLED = 1
 Write-Host "CGO_ENABLED: $env:CGO_ENABLED"
 
+# Determine the library extension based on the platform
+if ($IsWindows) {
+    $libExtension = "dll"
+} elseif ($IsMacOS) {
+    $libExtension = "dylib"
+} elseif ($IsLinux) {
+    $libExtension = "so"
+} else {
+    # Fallback to dll for backward compatibility
+    $libExtension = "dll"
+}
+
+$libraryName = "d2wrapper.$libExtension"
+Write-Host "Building for platform: $PSVersionTable.Platform, extension: $libExtension"
+
 # Build the Go code into a shared library
 Write-Host "Building Go code..."
-go build -trimpath -buildmode=c-shared -buildvcs=false -ldflags "-s" -o "d2wrapper.dll"
+go build -trimpath -buildmode=c-shared -buildvcs=false -ldflags "-s" -o $libraryName
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Failed to build Go code. Exit code: $LASTEXITCODE"
@@ -40,8 +55,8 @@ if (!(Test-Path $targetDir)) {
 Write-Host "Target directory created successfully."
 
 # Copy the built shared library to the target directory
-$sourceFile = "d2wrapper.dll"
-$destinationFile = "$targetDir\d2wrapper.dll"
+$sourceFile = $libraryName
+$destinationFile = "$targetDir\$libraryName"
 
 Write-Host "Copying shared library..."
 Write-Host "Source file: $sourceFile"

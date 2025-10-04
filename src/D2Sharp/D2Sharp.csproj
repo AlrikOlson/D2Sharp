@@ -47,8 +47,16 @@
         </Content>
     </ItemGroup>
 
+    <PropertyGroup>
+        <NativeLibExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.dll</NativeLibExtension>
+        <NativeLibExtension Condition="$([MSBuild]::IsOSPlatform('OSX'))">.dylib</NativeLibExtension>
+        <NativeLibExtension Condition="$([MSBuild]::IsOSPlatform('Linux'))">.so</NativeLibExtension>
+        <NativeLibExtension Condition="'$(NativeLibExtension)' == ''">.dll</NativeLibExtension>
+        <NativeLibName>d2wrapper$(NativeLibExtension)</NativeLibName>
+    </PropertyGroup>
+
     <ItemGroup>
-        <None Include="$(OutputPath)\d2wrapper.dll" Link="d2wrapper.dll" Condition="'$(CI)' != 'true'">
+        <None Include="$(OutputPath)\$(NativeLibName)" Link="$(NativeLibName)" Condition="'$(CI)' != 'true'">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
