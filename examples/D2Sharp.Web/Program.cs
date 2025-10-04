@@ -198,11 +198,8 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
 .RequireRateLimiting("RenderEndpoint")
 .WithName("RenderDiagram")
 .WithTags("Diagram")
-.WithOpenApi(operation => new(operation)
-{
-    Summary = "Render a D2 diagram",
-    Description = "Accepts a D2 diagram script and returns the rendered SVG. Rendering has a configurable timeout (default: 30 seconds)."
-});
+.WithSummary("Render a D2 diagram")
+.WithDescription("Accepts a D2 diagram script and returns the rendered SVG. Rendering has a configurable timeout (default: 30 seconds).");
 
 app.Run();
 
