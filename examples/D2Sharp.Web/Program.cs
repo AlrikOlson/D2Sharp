@@ -132,7 +132,7 @@ app.MapHealthChecks("/health").WithTags("Health");
 app.MapHealthChecks("/health/ready").WithTags("Health");
 app.MapHealthChecks("/health/live").WithTags("Health");
 
-app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest request, D2Wrapper d2Wrapper) =>
+app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest request, D2Wrapper d2Wrapper, CancellationToken cancellationToken) =>
 {
     // Validate input
     if (string.IsNullOrEmpty(request.Script))
@@ -140,37 +140,59 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
         return Results.BadRequest("Script is required");
     }
 
-    var maxScriptLength = context.RequestServices.GetRequiredService<IConfiguration>()
-        .GetValue<int>("Validation:MaxScriptLength", 100000);
+    var config = context.RequestServices.GetRequiredService<IConfiguration>();
+    var maxScriptLength = config.GetValue<int>("Validation:MaxScriptLength", 100000);
+    var timeoutSeconds = config.GetValue<int>("Rendering:TimeoutSeconds", 30);
 
     if (request.Script.Length > maxScriptLength)
     {
         return Results.BadRequest($"Script exceeds maximum length of {maxScriptLength} characters");
     }
 
-    var result = d2Wrapper.RenderDiagram(request.Script);
+    try
+    {
+        // Use async rendering with timeout
+        var result = await d2Wrapper.RenderDiagramAsync(
+            request.Script,
+            TimeSpan.FromSeconds(timeoutSeconds),
+            cancellationToken);
 
-    if (result.IsSuccess)
-    {
-        return Results.Content(result.Svg, "image/svg+xml");
-    }
-    else
-    {
-        var highlightedParts = result.Error.GetHighlightedLineParts();
-        var errorResponse = new
+        if (result.IsSuccess)
         {
-            message = result.Error.Message,
-            lineNumber = result.Error.LineNumber,
-            column = result.Error.Column,
-            lineContent = result.Error.LineContent,
-            highlightedLineParts = new
+            return Results.Content(result.Svg, "image/svg+xml");
+        }
+        else
+        {
+            var highlightedParts = result.Error.GetHighlightedLineParts();
+            var errorResponse = new
             {
-                beforeError = highlightedParts.beforeError,
-                errorPart = highlightedParts.errorPart,
-                afterError = highlightedParts.afterError
-            }
-        };
-        return Results.BadRequest(errorResponse);
+                message = result.Error.Message,
+                lineNumber = result.Error.LineNumber,
+                column = result.Error.Column,
+                lineContent = result.Error.LineContent,
+                highlightedLineParts = new
+                {
+                    beforeError = highlightedParts.beforeError,
+                    errorPart = highlightedParts.errorPart,
+                    afterError = highlightedParts.afterError
+                }
+            };
+            return Results.BadRequest(errorResponse);
+        }
+    }
+    catch (TimeoutException ex)
+    {
+        return Results.Problem(
+            detail: ex.Message,
+            statusCode: StatusCodes.Status408RequestTimeout,
+            title: "Rendering Timeout");
+    }
+    catch (OperationCanceledException)
+    {
+        return Results.Problem(
+            detail: "Rendering was cancelled",
+            statusCode: StatusCodes.Status499ClientClosedRequest,
+            title: "Request Cancelled");
     }
 })
 .RequireRateLimiting("RenderEndpoint")
@@ -179,7 +201,7 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
 .WithOpenApi(operation => new(operation)
 {
     Summary = "Render a D2 diagram",
-    Description = "Accepts a D2 diagram script and returns the rendered SVG"
+    Description = "Accepts a D2 diagram script and returns the rendered SVG. Rendering has a configurable timeout (default: 30 seconds)."
 });
 
 app.Run();
