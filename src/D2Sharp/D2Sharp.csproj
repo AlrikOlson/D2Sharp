@@ -55,7 +55,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Content Include="runtimes\**\*" Condition="'$(CI)' != 'true'">
+        <Content Include="runtimes\**\*">
             <Pack>true</Pack>
             <PackagePath>runtimes</PackagePath>
         </Content>
