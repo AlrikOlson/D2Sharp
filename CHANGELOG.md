@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-beta.2] - 2025-10-03
+
+### Added - Phase 4: Code Quality, Coverage & Performance Baselines
+- **Code Coverage**: Comprehensive test coverage reporting with Coverlet
+  - Line coverage: 82.6%
+  - Branch coverage: 75.5%
+  - Method coverage: 97.4%
+  - Coverage threshold enforcement (80% minimum)
+- **Codecov Integration**: Automatic coverage reporting on all commits
+  - Coverage badge in README
+  - Per-platform coverage reports
+  - codecov.yml configuration with quality gates
+- **Performance Benchmarks**: BenchmarkDotNet benchmark suite
+  - 9 comprehensive rendering benchmarks
+  - Simple, complex, and very complex diagram scenarios
+  - Layout engine comparison (Dagre vs ELK)
+  - Render options overhead measurement
+  - Async rendering benchmarks
+  - Memory allocation profiling
+- **Documentation**:
+  - Coverage metrics in README
+  - Performance benchmarks documentation
+  - Benchmark running instructions
+  - Performance targets and baselines
+
+### Changed
+- CI/CD workflow updated to collect and upload coverage
+- Test project configured with coverage thresholds
+- Excluded examples and benchmarks from coverage calculation
+
+### Infrastructure
+- Added benchmarks/D2Sharp.Benchmarks project to solution
+- Added codecov.yml for coverage configuration
+- Updated .gitignore for coverage artifacts
+
 ## [0.2.0-beta.1] - 2025-10-03
 
 ### Added - Phase 3: Render Options & NuGet Package Readiness
@@ -107,7 +142,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.1...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...HEAD
+[0.2.0-beta.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.1.0-alpha.7...v0.2.0-beta.1
 [0.1.0-alpha.7]: https://github.com/AlrikOlson/D2Sharp/releases/tag/v0.1.0-alpha.7
 [0.1.0-alpha.6]: https://github.com/AlrikOlson/D2Sharp/releases/tag/v0.1.0-alpha.6

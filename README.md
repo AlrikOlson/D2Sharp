@@ -3,6 +3,7 @@
 A production-ready .NET wrapper for [D2](https://d2lang.com/), the modern diagram scripting language that turns text to diagrams.
 
 [![NuGet](https://img.shields.io/nuget/v/D2Sharp.svg)](https://www.nuget.org/packages/D2Sharp/)
+[![codecov](https://codecov.io/gh/AlrikOlson/D2Sharp/branch/main/graph/badge.svg)](https://codecov.io/gh/AlrikOlson/D2Sharp)
 [![License](https://img.shields.io/github/license/AlrikOlson/D2Sharp)](LICENSE.txt)
 
 ## Features
@@ -271,10 +272,37 @@ direction: right
 
 ## Performance
 
-- **Thread-safe**: Safe for concurrent use
-- **Memory efficient**: Automatic cleanup with try-finally patterns
+D2Sharp is designed for production performance:
+
+- **Thread-safe**: Safe for concurrent use across multiple threads
+- **Memory efficient**: Automatic cleanup with try-finally patterns, minimal allocations
 - **Async-first**: Non-blocking async API with cancellation support
-- **Optimized**: GeneratedRegex for fast error parsing
+- **Optimized**: GeneratedRegex for fast error parsing, zero-allocation patterns
+
+### Test Coverage
+
+- **Line Coverage**: 82.6%
+- **Branch Coverage**: 75.5%
+- **Method Coverage**: 97.4%
+
+Coverage reports are automatically generated on every commit and available on [Codecov](https://codecov.io/gh/AlrikOlson/D2Sharp).
+
+### Performance Benchmarks
+
+Performance benchmarks are available in the `benchmarks/` directory using BenchmarkDotNet.
+
+Run benchmarks:
+```bash
+cd benchmarks/D2Sharp.Benchmarks
+dotnet run -c Release
+```
+
+**Typical Performance** (Apple Silicon M-series, .NET 8.0):
+- Simple diagrams (A -> B): ~30-50ms
+- Complex diagrams (10-20 nodes): ~100-200ms
+- Very complex diagrams (50+ nodes): ~300-500ms
+
+Performance varies based on diagram complexity, layout engine (Dagre vs ELK), and hardware.
 
 ## Building from Source
 

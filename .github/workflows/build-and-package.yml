@@ -57,6 +57,18 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal
 
+    - name: Test with Coverage
+      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./tests/D2Sharp.Tests/coverage/coverage.cobertura.xml
+        flags: ${{ matrix.os }}
+        name: codecov-${{ matrix.os }}
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
     - name: Build native library
       run: |
         cd src/D2Sharp/d2wrapper
