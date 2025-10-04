@@ -8,9 +8,10 @@ namespace D2Sharp;
 /// <summary>
 /// Provides functionality to render D2 diagrams as SVG.
 /// </summary>
-public partial class D2Wrapper
+public partial class D2Wrapper : IDisposable
 {
     private readonly ILogger<D2Wrapper> _logger;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="D2Wrapper"/> class.
@@ -33,8 +34,11 @@ public partial class D2Wrapper
     /// <param name="script">The D2 diagram script to render.</param>
     /// <returns>A <see cref="RenderResult"/> containing either the SVG output or error information.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
     public RenderResult RenderDiagram(string script)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (script == null)
             throw new ArgumentNullException(nameof(script));
 
@@ -62,6 +66,61 @@ public partial class D2Wrapper
 
         _logger.LogDebug("Rendered diagram successfully");
         return new RenderResult { Svg = svg };
+    }
+
+    /// <summary>
+    /// Asynchronously renders a D2 diagram script as SVG.
+    /// </summary>
+    /// <param name="script">The D2 diagram script to render.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="RenderResult"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    public Task<RenderResult> RenderDiagramAsync(string script, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (script == null)
+            throw new ArgumentNullException(nameof(script));
+
+        return Task.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return RenderDiagram(script);
+        }, cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously renders a D2 diagram script as SVG with a timeout.
+    /// </summary>
+    /// <param name="script">The D2 diagram script to render.</param>
+    /// <param name="timeout">The maximum time to wait for rendering to complete.</param>
+    /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="RenderResult"/>.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
+    /// <exception cref="TimeoutException">Thrown when the rendering operation exceeds the specified timeout.</exception>
+    /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
+    public async Task<RenderResult> RenderDiagramAsync(string script, TimeSpan timeout, CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (script == null)
+            throw new ArgumentNullException(nameof(script));
+
+        using var timeoutCts = new CancellationTokenSource(timeout);
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
+
+        try
+        {
+            return await RenderDiagramAsync(script, linkedCts.Token);
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Diagram rendering timed out after {Timeout}", timeout);
+            throw new TimeoutException($"Diagram rendering timed out after {timeout.TotalSeconds} seconds");
+        }
     }
 
     private D2Error ParseError(string errorMessage, string script)
@@ -95,6 +154,35 @@ public partial class D2Wrapper
             return lines[lineNumber - 1];
         }
         return string.Empty;
+    }
+
+    /// <summary>
+    /// Releases all resources used by the <see cref="D2Wrapper"/>.
+    /// </summary>
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases the unmanaged resources used by the <see cref="D2Wrapper"/> and optionally releases the managed resources.
+    /// </summary>
+    /// <param name="disposing">true to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources here if needed in the future
+                _logger.LogDebug("D2Wrapper disposed");
+            }
+
+            // Dispose unmanaged resources here if needed in the future
+
+            _disposed = true;
+        }
     }
 }
 
