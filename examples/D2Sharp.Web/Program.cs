@@ -1,10 +1,36 @@
 using D2Sharp;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<D2Wrapper>();
+
+// Configure rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Request.Headers.Host.ToString(),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = builder.Configuration.GetValue<int>("RateLimiting:PermitLimit", 100),
+                Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int>("RateLimiting:WindowMinutes", 1))
+            }));
+
+    options.AddPolicy("RenderEndpoint", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = builder.Configuration.GetValue<int>("RateLimiting:RenderEndpoint:PermitLimit", 10),
+                Window = TimeSpan.FromMinutes(builder.Configuration.GetValue<int>("RateLimiting:RenderEndpoint:WindowMinutes", 1))
+            }));
+});
 
 // Configure CORS
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
@@ -41,6 +67,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Use rate limiting
+app.UseRateLimiter();
+
 // Use CORS
 app.UseCors("DefaultCorsPolicy");
 
@@ -50,9 +79,18 @@ app.UseStaticFiles();
 
 app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest request, D2Wrapper d2Wrapper) =>
 {
+    // Validate input
     if (string.IsNullOrEmpty(request.Script))
     {
         return Results.BadRequest("Script is required");
+    }
+
+    var maxScriptLength = context.RequestServices.GetRequiredService<IConfiguration>()
+        .GetValue<int>("Validation:MaxScriptLength", 100000);
+
+    if (request.Script.Length > maxScriptLength)
+    {
+        return Results.BadRequest($"Script exceeds maximum length of {maxScriptLength} characters");
     }
 
     var result = d2Wrapper.RenderDiagram(request.Script);
@@ -79,7 +117,7 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
         };
         return Results.BadRequest(errorResponse);
     }
-});
+}).RequireRateLimiting("RenderEndpoint");
 
 app.Run();
 
