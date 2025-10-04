@@ -51,7 +51,7 @@ jobs:
       run: |
         echo "NUGET_PACKAGES=$HOME/.nuget/packages" >> $GITHUB_ENV
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -173,7 +173,7 @@ jobs:
 
     - name: Setup .NET
       if: steps.check_changes.outputs.run_package == 'true'
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
