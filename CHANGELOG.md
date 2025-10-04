@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0-beta.1] - 2025-10-03
+
+### Added - Phase 3: Render Options & NuGet Package Readiness
+- **RenderOptions API**: Comprehensive rendering customization options
+  - Layout engine selection: Dagre (default, fast) or ELK (sophisticated layouts)
+  - Theme support: Access to 300+ built-in D2 themes via ThemeId
+  - Dark theme support: DarkThemeId for automatic dark mode rendering
+  - Sketch mode: Hand-drawn style diagrams
+  - Visual customization: Pad, Scale, and Center options
+  - Advanced options: Target, AnimateInterval, ForceAppendix
+- **JSON-based options**: Serialization layer for C# to Go interop
+- **Backward compatibility**: All RenderOptions parameters are optional
+- **8 new unit tests**: Comprehensive test coverage for all render options
+- **Production-ready README**: Complete documentation with installation, quick start, API reference, and examples
+- **NuGet package metadata**: Enhanced package information including:
+  - PackageId, Authors, comprehensive Description
+  - PackageReadmeFile and PackageLicenseFile inclusion
+  - Repository URL and project URL
+  - Rich package tags for discoverability
+  - Release notes reference
+
+### Changed
+- RenderDiagram methods now accept optional RenderOptions parameter
+- Go wrapper updated to parse and apply JSON render options
+- Updated all method signatures for RenderOptions support while maintaining backward compatibility
+
 ### Added - Phase 2: Critical Reliability & Production Hardening
 - **Async/await support**: RenderDiagramAsync methods with CancellationToken support
 - **Timeout protection**: Configurable rendering timeout (default: 30s, production: 15s) with validation (100ms min, 10min max)
@@ -81,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.1.0-alpha.7...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.1...HEAD
+[0.2.0-beta.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.1.0-alpha.7...v0.2.0-beta.1
 [0.1.0-alpha.7]: https://github.com/AlrikOlson/D2Sharp/releases/tag/v0.1.0-alpha.7
 [0.1.0-alpha.6]: https://github.com/AlrikOlson/D2Sharp/releases/tag/v0.1.0-alpha.6

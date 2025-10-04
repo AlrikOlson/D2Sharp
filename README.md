@@ -1,182 +1,330 @@
 # D2Sharp
 
-[![NuGet](https://img.shields.io/nuget/v/D2Sharp.svg)](https://www.nuget.org/packages/D2Sharp/)
+A production-ready .NET wrapper for [D2](https://d2lang.com/), the modern diagram scripting language that turns text to diagrams.
 
-D2Sharp wraps the D2 diagramming library for .NET, allowing you to render D2 diagrams with C# in your .NET applications.
+[![NuGet](https://img.shields.io/nuget/v/D2Sharp.svg)](https://www.nuget.org/packages/D2Sharp/)
+[![License](https://img.shields.io/github/license/AlrikOlson/D2Sharp)](LICENSE.txt)
 
 ## Features
 
-- Render D2 diagrams as SVG
-- Integrate with ASP.NET Core for web applications
-- Comprehensive error handling with line/column information
-- Production-ready web API with:
-  - Rate limiting to prevent abuse
-  - CORS configuration with environment-based policies
-  - Security headers (HSTS, X-Frame-Options, etc.)
-  - Input validation and request size limits
-  - Swagger/OpenAPI documentation
-  - Health check endpoints
-- Docker support with multi-stage builds
-- Comprehensive test suite
-- Full XML API documentation
+✅ **Full D2 Support** - Render D2 diagrams with complete feature support
+✅ **Async/Await** - Task-based async rendering with cancellation and timeout support
+✅ **Production Ready** - Thread-safe, memory-leak protected, with comprehensive error handling
+✅ **Flexible Rendering** - Choose layout engines (Dagre/ELK), themes, sketch mode, and more
+✅ **Cross-Platform** - Works on Windows, macOS, and Linux
+✅ **Type-Safe** - Fully documented API with XML docs and nullable reference types
 
-## Prerequisites for Building
+## Installation
 
-- .NET 8.0 SDK or newer
-- Go 1.22.2 or newer
-- GCC (for compiling the Go wrapper)
-
-You can check your setup using the provided scripts:
-
-Windows:
-```powershell
-.\depcheck.ps1
-```
-
-Unix-based systems:
 ```bash
-./depcheck.sh
+dotnet add package D2Sharp
 ```
 
-## Project Structure
+## Quick Start
 
-- `src/D2Sharp`: Main library project
-- `examples/D2Sharp.Web`: Web demo application
-- `src/D2Sharp/d2wrapper`: Go wrapper code
-
-## Setup
-
-1. Clone the repository
-2. Build the project: `dotnet build`
-
-## Usage
-
-Basic usage:
+### Basic Rendering
 
 ```csharp
-// Create an instance of D2Wrapper
-// You can pass a logger instance if you want to enable logging
-var wrapper = new D2Wrapper(logger);
+using D2Sharp;
 
-// Define your D2 script as a string
-var script = @"direction: right
-A -> B -> C";
+var wrapper = new D2Wrapper();
+var result = wrapper.RenderDiagram("A -> B -> C");
 
-// Render the diagram
-var svg = wrapper.RenderDiagram(script);
+if (result.IsSuccess)
+{
+    Console.WriteLine(result.Svg);
+    // Save to file
+    File.WriteAllText("diagram.svg", result.Svg);
+}
+else
+{
+    Console.WriteLine($"Error: {result.Error?.Message}");
+}
+```
 
-// The 'svg' variable now contains the SVG representation of your diagram
-// You can save this to a file, display it in a web page, or process it further as needed
+### Async Rendering
+
+```csharp
+using D2Sharp;
+
+var wrapper = new D2Wrapper();
+
+// With cancellation token
+var cts = new CancellationTokenSource();
+var result = await wrapper.RenderDiagramAsync("x -> y", cancellationToken: cts.Token);
+
+// With timeout (30 seconds)
+var result = await wrapper.RenderDiagramAsync(
+    "A -> B",
+    timeout: TimeSpan.FromSeconds(30)
+);
+```
+
+## Rendering Options
+
+D2Sharp supports extensive customization through `RenderOptions`:
+
+### Themes
+
+Choose from 300+ built-in themes:
+
+```csharp
+var options = new RenderOptions
+{
+    ThemeId = 1  // Cool classics theme
+};
+
+var result = wrapper.RenderDiagram("server -> database", options);
+```
+
+[View all D2 themes →](https://github.com/terrastruct/d2/tree/master/d2themes)
+
+### Layout Engines
+
+```csharp
+var options = new RenderOptions
+{
+    Layout = LayoutEngine.Elk  // or LayoutEngine.Dagre (default)
+};
+
+var result = wrapper.RenderDiagram(@"
+    A -> B
+    B -> C
+    C -> D
+", options);
+```
+
+- **Dagre** - Faster, simpler layouts (default)
+- **ELK** - More sophisticated layouts with advanced features
+
+### Sketch Mode
+
+Create hand-drawn style diagrams:
+
+```csharp
+var options = new RenderOptions
+{
+    Sketch = true
+};
+
+var result = wrapper.RenderDiagram("idea -> prototype -> product", options);
+```
+
+### Visual Customization
+
+```csharp
+var options = new RenderOptions
+{
+    Pad = 50,        // Padding around diagram (default: 100)
+    Scale = 0.5,     // Scale factor (0.5 = half size)
+    Center = true    // Center in viewbox
+};
+
+var result = wrapper.RenderDiagram("start -> end", options);
+```
+
+### Combined Options
+
+```csharp
+var options = new RenderOptions
+{
+    Layout = LayoutEngine.Elk,
+    ThemeId = 1,
+    Sketch = true,
+    Pad = 75,
+    Center = true
+};
+
+var result = wrapper.RenderDiagram(@"
+    server: Web Server {
+        shape: rectangle
+    }
+    db: Database {
+        shape: cylinder
+    }
+    server -> db: queries
+", options);
 ```
 
 ## Error Handling
 
-The `RenderDiagram` method now returns a `RenderResult` object, which includes both the rendered SVG (if successful) and detailed error information (if rendering failed). Here's how you can use it:
+D2Sharp provides detailed error information:
 
 ```csharp
-var wrapper = new D2Wrapper();
-string script = @"
-A -> B
-B ->  // This line has an error
-C -> D
-";
+var result = wrapper.RenderDiagram("A -> ");  // Invalid script
 
-var result = wrapper.RenderDiagram(script);
+if (!result.IsSuccess)
+{
+    var error = result.Error;
+    Console.WriteLine($"Message: {error.Message}");
+    Console.WriteLine($"Line: {error.LineNumber}");
+    Console.WriteLine($"Column: {error.Column}");
+    Console.WriteLine($"Line Content: {error.LineContent}");
 
-if (result.IsSuccess)
-{
-    Console.WriteLine("Diagram rendered successfully:");
-    Console.WriteLine(result.Svg);
-}
-else
-{
-    Console.WriteLine("Error rendering diagram:");
-    Console.WriteLine($"Message: {result.Error.Message}");
-    if (result.Error.LineNumber.HasValue)
-    {
-        Console.WriteLine($"Line {result.Error.LineNumber}: {result.Error.LineContent}");
-    }
+    // Get highlighted error parts
+    var parts = error.GetHighlightedLineParts();
+    Console.WriteLine($"Before: {parts.beforeError}");
+    Console.WriteLine($"Error: {parts.errorPart}");
+    Console.WriteLine($"After: {parts.afterError}");
 }
 ```
 
-## Running the Web Demo
+## Logging
 
-### With .NET CLI
+D2Sharp supports `Microsoft.Extensions.Logging`:
 
-```bash
-cd examples/D2Sharp.Web
-dotnet run
+```csharp
+using Microsoft.Extensions.Logging;
+
+var loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder.AddConsole();
+});
+
+var logger = loggerFactory.CreateLogger<D2Wrapper>();
+var wrapper = new D2Wrapper(logger);
+
+var result = wrapper.RenderDiagram("A -> B");
 ```
 
-Then visit:
-- Application: http://localhost:5044
-- API Documentation: http://localhost:5044/api-docs
-- Health Check: http://localhost:5044/health
+## Resource Management
 
-### With Docker
+D2Sharp implements `IDisposable`:
 
-```bash
-# Build and run with docker-compose
-docker-compose up --build
+```csharp
+using var wrapper = new D2Wrapper();
+var result = wrapper.RenderDiagram("A -> B");
 
-# Or build and run manually
-docker build -t d2sharp .
-docker run -p 8080:8080 d2sharp
+// Resources automatically cleaned up when leaving scope
 ```
 
-Then visit:
-- Application: http://localhost:8080
-- API Documentation: http://localhost:8080/api-docs
-- Health Check: http://localhost:8080/health
+## Advanced Usage
 
-## API Documentation
+### Dark Theme Support
 
-The web API includes Swagger/OpenAPI documentation. When running the application, navigate to `/api-docs` to see the interactive API documentation.
+```csharp
+var options = new RenderOptions
+{
+    ThemeId = 0,          // Light theme
+    DarkThemeId = 200     // Dark theme (when client is in dark mode)
+};
+```
 
-### Endpoints
+### Timeout Protection
 
-- `POST /render` - Render a D2 diagram script and return SVG
-- `GET /health` - Health check endpoint
-- `GET /health/ready` - Readiness check endpoint
-- `GET /health/live` - Liveness check endpoint
+```csharp
+// Set maximum rendering time
+var result = await wrapper.RenderDiagramAsync(
+    complexScript,
+    timeout: TimeSpan.FromSeconds(15)
+);
+```
 
-## Security Features
+Timeout bounds:
+- Minimum: 100ms
+- Maximum: 10 minutes
 
-The web demo includes several security features:
+### Input Validation
 
-- **Rate Limiting**: Configurable per-endpoint rate limits
-- **CORS**: Environment-based CORS policies
-- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, HSTS
-- **Input Validation**: Script length limits and request size restrictions
-- **Non-root Docker**: Container runs as non-root user
+D2Sharp automatically validates:
+- Maximum script length: 10MB
+- Timeout ranges
+- Disposed state
 
-## Configuration
+```csharp
+try
+{
+    var result = wrapper.RenderDiagram(veryLongScript);
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine($"Script too long: {ex.Message}");
+}
+```
 
-Configuration is managed through `appsettings.json` with environment-specific overrides. Key settings:
+## D2 Language Reference
 
-- `RateLimiting:PermitLimit` - Global rate limit
-- `RateLimiting:RenderEndpoint:PermitLimit` - Render endpoint rate limit
-- `Validation:MaxScriptLength` - Maximum script length in characters
-- `Cors:AllowedOrigins` - Allowed CORS origins (Production only)
+D2Sharp supports the full D2 language syntax:
 
-## Testing
+```d2
+# Shapes and connections
+server -> client: HTTPS
+
+# Containers
+network: {
+  router
+  switch
+  router -> switch
+}
+
+# Styling
+server.style.fill: "#4CAF50"
+client.shape: person
+
+# Direction
+direction: right
+
+# And much more...
+```
+
+[Learn D2 syntax →](https://d2lang.com/tour/intro)
+
+## Performance
+
+- **Thread-safe**: Safe for concurrent use
+- **Memory efficient**: Automatic cleanup with try-finally patterns
+- **Async-first**: Non-blocking async API with cancellation support
+- **Optimized**: GeneratedRegex for fast error parsing
+
+## Building from Source
+
+### Prerequisites
+
+- .NET 8.0 SDK or newer
+- Go 1.22+ or newer
+- GCC (for compiling the Go wrapper)
+
+Check your setup:
+
+**Windows:**
+```powershell
+.\depcheck.ps1
+```
+
+**Unix-based systems:**
+```bash
+./depcheck.sh
+```
+
+### Build
 
 ```bash
-# Run all tests
-dotnet test
-
-# Run with coverage
-dotnet test /p:CollectCoverage=true
+dotnet build
 ```
+
+## Project Structure
+
+- `src/D2Sharp` - Main library project
+- `src/D2Sharp/d2wrapper` - Go wrapper code
+- `examples/D2Sharp.Web` - Web demo application
+- `tests/D2Sharp.Tests` - Unit and integration tests
 
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## Acknowledgements
+## License
 
-This project would not be possible without the following open-source projects:
+MIT License - see [LICENSE.txt](LICENSE.txt) for details.
 
-- [D2](https://github.com/terrastruct/d2): The underlying diagramming engine
-- [.NET](https://github.com/dotnet/runtime): The runtime and framework
-- [Go](https://github.com/golang/go): Used for the native wrapper
+## Acknowledgments
+
+- [D2](https://github.com/terrastruct/d2) - The modern diagram scripting language
+- Built with ❤️ using .NET 8.0
+
+## Links
+
+- [D2 Documentation](https://d2lang.com/)
+- [D2 Themes Gallery](https://github.com/terrastruct/d2/tree/master/d2themes)
+- [D2 Playground](https://play.d2lang.com/)
+- [Report Issues](https://github.com/AlrikOlson/D2Sharp/issues)

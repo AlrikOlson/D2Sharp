@@ -155,6 +155,7 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
         var result = await d2Wrapper.RenderDiagramAsync(
             request.Script,
             TimeSpan.FromSeconds(timeoutSeconds),
+            options: null,
             cancellationToken);
 
         if (result.IsSuccess)

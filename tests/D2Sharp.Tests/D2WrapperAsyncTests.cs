@@ -86,7 +86,7 @@ A -> E
 
         // Act & Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            wrapper.RenderDiagramAsync(script, cts.Token));
+            wrapper.RenderDiagramAsync(script, options: null, cts.Token));
     }
 
     [Fact]
@@ -143,7 +143,7 @@ A -> E
 
         // Act & Assert
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            wrapper.RenderDiagramAsync(script, timeout, cts.Token));
+            wrapper.RenderDiagramAsync(script, timeout, options: null, cts.Token));
     }
 
     [Fact]

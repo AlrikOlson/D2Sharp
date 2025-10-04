@@ -1,4 +1,6 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.RegularExpressions;
@@ -30,7 +32,7 @@ public partial class D2Wrapper : IDisposable
     }
 
     [LibraryImport("d2wrapper", EntryPoint = "RenderDiagram", StringMarshalling = StringMarshalling.Utf8)]
-    private static partial IntPtr RenderDiagramInternal(string script, out IntPtr errorPtr);
+    private static partial IntPtr RenderDiagramInternal(string script, string optionsJson, out IntPtr errorPtr);
 
     [LibraryImport("d2wrapper", EntryPoint = "FreeDiagram")]
     private static partial void FreeDiagram(IntPtr ptr);
@@ -39,13 +41,14 @@ public partial class D2Wrapper : IDisposable
     /// Renders a D2 diagram script as SVG.
     /// </summary>
     /// <param name="script">The D2 diagram script to render.</param>
+    /// <param name="options">Optional rendering options for customization.</param>
     /// <returns>A <see cref="RenderResult"/> containing either the SVG output or error information.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when script exceeds maximum length.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
     /// <exception cref="DllNotFoundException">Thrown when the native d2wrapper library cannot be found.</exception>
     /// <exception cref="EntryPointNotFoundException">Thrown when required functions are missing from the native library.</exception>
-    public RenderResult RenderDiagram(string script)
+    public RenderResult RenderDiagram(string script, RenderOptions? options = null)
     {
         ThrowIfDisposed();
 
@@ -57,6 +60,9 @@ public partial class D2Wrapper : IDisposable
 
         _logger.LogDebug("Calling RenderDiagram with script");
 
+        // Serialize options to JSON
+        string optionsJson = SerializeOptions(options);
+
         IntPtr errorPtr = IntPtr.Zero;
         IntPtr svgPtr = IntPtr.Zero;
 
@@ -64,7 +70,7 @@ public partial class D2Wrapper : IDisposable
         {
             try
             {
-                svgPtr = RenderDiagramInternal(script, out errorPtr);
+                svgPtr = RenderDiagramInternal(script, optionsJson, out errorPtr);
             }
             catch (DllNotFoundException ex)
             {
@@ -127,13 +133,14 @@ public partial class D2Wrapper : IDisposable
     /// Asynchronously renders a D2 diagram script as SVG.
     /// </summary>
     /// <param name="script">The D2 diagram script to render.</param>
+    /// <param name="options">Optional rendering options for customization.</param>
     /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="RenderResult"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when script exceeds maximum length.</exception>
     /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public Task<RenderResult> RenderDiagramAsync(string script, CancellationToken cancellationToken = default)
+    public Task<RenderResult> RenderDiagramAsync(string script, RenderOptions? options = null, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
 
@@ -146,7 +153,7 @@ public partial class D2Wrapper : IDisposable
         return Task.Run(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return RenderDiagram(script);
+            return RenderDiagram(script, options);
         }, cancellationToken);
     }
 
@@ -155,6 +162,7 @@ public partial class D2Wrapper : IDisposable
     /// </summary>
     /// <param name="script">The D2 diagram script to render.</param>
     /// <param name="timeout">The maximum time to wait for rendering to complete.</param>
+    /// <param name="options">Optional rendering options for customization.</param>
     /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="RenderResult"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
@@ -163,7 +171,7 @@ public partial class D2Wrapper : IDisposable
     /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
     /// <exception cref="TimeoutException">Thrown when the rendering operation exceeds the specified timeout.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
-    public async Task<RenderResult> RenderDiagramAsync(string script, TimeSpan timeout, CancellationToken cancellationToken = default)
+    public async Task<RenderResult> RenderDiagramAsync(string script, TimeSpan timeout, RenderOptions? options = null, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
 
@@ -184,13 +192,38 @@ public partial class D2Wrapper : IDisposable
 
         try
         {
-            return await RenderDiagramAsync(script, linkedCts.Token);
+            return await RenderDiagramAsync(script, options, linkedCts.Token);
         }
         catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning("Diagram rendering timed out after {Timeout}", timeout);
             throw new TimeoutException($"Diagram rendering timed out after {timeout.TotalSeconds} seconds");
         }
+    }
+
+    private static string SerializeOptions(RenderOptions? options)
+    {
+        if (options == null)
+            return "null";
+
+        var jsonOptions = new
+        {
+            layout = options.Layout?.ToString().ToLowerInvariant(),
+            themeId = options.ThemeId,
+            darkThemeId = options.DarkThemeId,
+            sketch = options.Sketch,
+            pad = options.Pad,
+            scale = options.Scale,
+            center = options.Center,
+            target = options.Target,
+            animateInterval = options.AnimateInterval,
+            forceAppendix = options.ForceAppendix
+        };
+
+        return JsonSerializer.Serialize(jsonOptions, new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        });
     }
 
     private D2Error ParseError(string errorMessage, string script)
