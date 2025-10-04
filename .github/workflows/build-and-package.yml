@@ -264,28 +264,28 @@ jobs:
       with:
         name: nuget-package
 
-    - name: Create Release
+    - name: Create or Update Release
       if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
-      id: create_release
-      uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.get_version.outputs.CURRENT_VERSION }}
-        release_name: Release ${{ steps.get_version.outputs.CURRENT_VERSION }}
-        draft: false
-        prerelease: true
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="v${{ steps.get_version.outputs.CURRENT_VERSION }}"
+        PACKAGE="${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.CURRENT_VERSION }}.nupkg"
 
-    - name: Upload Release Asset
-      if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.CURRENT_VERSION }}.nupkg
-        asset_name: ${{ env.NUGET_PACKAGE_NAME }}.${{ steps.get_version.outputs.CURRENT_VERSION }}.nupkg
-        asset_content_type: application/octet-stream
+        # Check if release exists
+        if ! gh release view "$TAG" >/dev/null 2>&1; then
+          echo "Creating new release $TAG"
+          gh release create "$TAG" \
+            --title "Release ${{ steps.get_version.outputs.CURRENT_VERSION }}" \
+            --prerelease \
+            --generate-notes
+        else
+          echo "Release $TAG already exists"
+        fi
+
+        # Upload asset (--clobber overwrites if exists)
+        echo "Uploading $PACKAGE to release $TAG"
+        gh release upload "$TAG" "$PACKAGE" --clobber
 
     - name: Publish to NuGet
       if: steps.check_changes.outputs.run_release == 'true' && steps.compare_versions.outputs.VERSION_CHANGED == 'true'
