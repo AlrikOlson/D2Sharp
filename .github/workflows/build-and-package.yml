@@ -31,8 +31,8 @@ jobs:
       uses: samypr100/setup-dev-drive@v3
       with:
         drive-size: 8GB
-        drive-letter: E
-        drive-type: ReFS
+        drive-type: Fixed
+        drive-format: ReFS
 
     - name: Configure Windows environment for performance
       if: runner.os == 'Windows'
