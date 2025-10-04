@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-10-04
+
+### Changed
+- **Documentation**: Removed emojis and AI-sounding language across all documentation
+  - Removed emojis (checkmarks, hearts, etc.)
+  - Simplified marketing language ("production-ready", "comprehensive", "extensive", etc.)
+  - Removed redundant subject repetition and vague phrases
+  - Made language more direct and natural throughout README, CONTRIBUTING, and other docs
+
 ## [0.3.0] - 2025-10-03
 
 ### Code Quality
@@ -275,7 +284,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0
 [0.3.0-alpha.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0-alpha.1
 [0.2.0-beta.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.1...v0.2.0-beta.2
