@@ -101,3 +101,5 @@ dlldata.c
 d2wrapper.h
 
 appsettings.*.json
+
+tools/D2Sharp.DiagramCLI/output

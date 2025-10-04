@@ -1,0 +1,65 @@
+# Microservices Architecture
+direction: down
+
+gateway: API Gateway {
+  shape: hexagon
+  style.fill: "#4CAF50"
+}
+
+auth: Auth Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+users: User Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+orders: Order Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+payments: Payment Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+notifications: Notification Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+msgqueue: Message Queue {
+  shape: queue
+  style.fill: "#FF9800"
+}
+
+authdb: Auth DB {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+usersdb: Users DB {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+ordersdb: Orders DB {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+gateway -> auth: Authenticate
+gateway -> users: User data
+gateway -> orders: Orders
+gateway -> payments: Payments
+
+auth -> authdb: Store tokens
+users -> usersdb: User CRUD
+orders -> ordersdb: Order CRUD
+
+orders -> msgqueue: Order created event
+payments -> msgqueue: Payment processed event
+msgqueue -> notifications: Send notifications
