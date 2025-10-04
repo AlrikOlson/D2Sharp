@@ -26,7 +26,12 @@ import (
 func RenderDiagram(script *C.char, errorPtr **C.char) *C.char {
 	goScript := C.GoString(script)
 
-	ruler, _ := textmeasure.NewRuler()
+	ruler, err := textmeasure.NewRuler()
+	if err != nil {
+		*errorPtr = C.CString(fmt.Sprintf("Text measurement initialization error: %v", err))
+		return nil
+	}
+
 	logger := slog.Logger{}
 	layoutResolver := func(engine string) (d2graph.LayoutGraph, error) {
 		return d2dagrelayout.DefaultLayout, nil
