@@ -1,19 +1,20 @@
-# D2Sharp Diagram CLI - Real-World Package Test
+# D2Sharp Diagram CLI
 
-A comprehensive command-line tool that tests the D2Sharp v0.3.0 NuGet package in real-world scenarios.
+Command-line tool for testing the D2Sharp v0.3.0 NuGet package in real-world scenarios.
 
 ## Purpose
 
 This tool demonstrates and validates all major features of the published D2Sharp package:
-- ✅ Basic diagram rendering
-- ✅ Batch processing with concurrency control
-- ✅ File watching for auto-regeneration
-- ✅ Architecture diagram generation from JSON configs
-- ✅ Performance benchmarking
-- ✅ Caching validation
-- ✅ Async/await patterns
-- ✅ Error handling
-- ✅ Theme and layout engine support
+
+- Basic diagram rendering
+- Batch processing with concurrency control
+- File watching for auto-regeneration
+- Architecture diagram generation from JSON configs
+- Performance benchmarking
+- Caching validation
+- Async/await patterns
+- Error handling
+- Theme and layout engine support
 
 ## Installation
 
@@ -72,28 +73,28 @@ dotnet run -- benchmark
 ## What Gets Tested
 
 ### Core D2Sharp Features
-1. **Package Installation** - Uses D2Sharp 0.3.0 from NuGet.org
-2. **Sync & Async Rendering** - Tests both rendering patterns
-3. **Render Options** - Themes, layout engines (Dagre/ELK), sketch mode
-4. **Error Handling** - Invalid D2 syntax, file not found, etc.
+1. Package installation from NuGet.org (v0.3.0)
+2. Sync and async rendering
+3. Render options (themes, layout engines, sketch mode)
+4. Error handling (invalid syntax, missing files)
 
 ### v0.3.0 Observability Features
-5. **Caching** - Validates cache hits/misses and performance improvements
-6. **Diagnostic IDs** - Tracks unique IDs for correlation
-7. **Concurrency Control** - MaxConcurrentRenders throttling
-8. **Telemetry** - Activity/span tracking
-9. **Metrics** - Performance measurement
+5. Caching (cache hits/misses and performance)
+6. Diagnostic IDs for correlation
+7. Concurrency control (MaxConcurrentRenders throttling)
+8. Telemetry (Activity/span tracking)
+9. Metrics (performance measurement)
 
 ### Real-World Scenarios
-10. **File I/O** - Read .d2 files, write SVG outputs
-11. **Batch Processing** - Multiple files with progress reporting
-12. **File Watching** - Real-time regeneration on changes
-13. **JSON Deserialization** - Architecture configs to D2 scripts
-14. **Performance Benchmarking** - Various workload tests
+10. File I/O (read .d2 files, write SVG outputs)
+11. Batch processing with progress reporting
+12. File watching and real-time regeneration
+13. JSON deserialization to D2 scripts
+14. Performance benchmarking
 
 ## Expected Output
 
-The CLI outputs to the `./output` directory (or custom via `--output`) and displays:
+The CLI outputs to `./output` (or custom via `--output`) and displays:
 - Render duration
 - Diagnostic ID
 - Cache hit/miss status
@@ -116,18 +117,18 @@ Typical results:
 
 ## Testing Checklist
 
-- [x] Package installs from NuGet.org (not local)
-- [x] Simple diagram renders successfully
-- [x] Complex diagrams with styling work
-- [x] Error messages are clear and helpful
-- [x] Caching improves performance
-- [x] Concurrent rendering respects limits
-- [x] Diagnostic IDs are generated
-- [x] Watch mode detects file changes
-- [x] Batch processing handles multiple files
-- [x] Architecture generation from JSON works
-- [x] All render options (theme, layout, sketch) function
-- [x] Benchmarks show realistic performance
+- Package installs from NuGet.org (not local)
+- Simple diagram renders successfully
+- Complex diagrams with styling work
+- Error messages are clear and helpful
+- Caching improves performance
+- Concurrent rendering respects limits
+- Diagnostic IDs are generated
+- Watch mode detects file changes
+- Batch processing handles multiple files
+- Architecture generation from JSON works
+- All render options (theme, layout, sketch) function
+- Benchmarks show realistic performance
 
 ## License
 

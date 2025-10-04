@@ -1,100 +1,110 @@
 # D2Sharp
 
-D2Sharp is a .NET wrapper for the D2 diagramming library, allowing you to create diagrams programmatically in your .NET applications.
+A .NET wrapper for [D2](https://d2lang.com/), the modern diagram scripting language that turns text to diagrams.
 
 ## Installation
 
-You can install D2Sharp via NuGet Package Manager:
-
-```
-Install-Package D2Sharp
-```
-
-Or via .NET CLI:
-
-```
+```bash
 dotnet add package D2Sharp
 ```
 
-## Usage
-
-Here's a basic example of how to use D2Sharp:
+## Quick Start
 
 ```csharp
 using D2Sharp;
-using Microsoft.Extensions.Logging;
 
-// Create a logger (optional)
-var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-var logger = loggerFactory.CreateLogger<D2Wrapper>();
-
-// Create an instance of D2Wrapper
-var wrapper = new D2Wrapper(logger);
-
-// Define your D2 script
-var script = @"
-direction: right
-A -> B -> C
-";
-
-// Render the diagram
-try
-{
-    string svg = wrapper.RenderDiagram(script);
-    // Use the SVG string as needed (e.g., save to file, display in a web page)
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Error rendering diagram: {ex.Message}");
-}
-```
-
-## Error Handling
-
-The `RenderDiagram` method now returns a `RenderResult` object, which includes both the rendered SVG (if successful) and detailed error information (if rendering failed). Here's how you can use it:
-
-```csharp
 var wrapper = new D2Wrapper();
-string script = @"
-A -> B
-B ->  // This line has an error
-C -> D
-";
-
-var result = wrapper.RenderDiagram(script);
+var result = wrapper.RenderDiagram("A -> B -> C");
 
 if (result.IsSuccess)
 {
-    Console.WriteLine("Diagram rendered successfully:");
-    Console.WriteLine(result.Svg);
+    File.WriteAllText("diagram.svg", result.Svg);
 }
 else
 {
-    Console.WriteLine("Error rendering diagram:");
-    Console.WriteLine($"Message: {result.Error.Message}");
-    if (result.Error.LineNumber.HasValue)
-    {
-        Console.WriteLine($"Line {result.Error.LineNumber}: {result.Error.LineContent}");
-    }
+    Console.WriteLine($"Error: {result.Error?.Message}");
 }
 ```
 
 ## Features
 
-- Render D2 diagrams as SVG
-- Cross-platform support (Windows, macOS, Linux)
-- Integration with .NET logging
+- Full D2 language support
+- Async/await with cancellation and timeouts
+- Thread-safe, memory-leak protected
+- Layout engines: Dagre and ELK
+- 300+ themes, sketch mode, styling options
+- Works on Windows, macOS, and Linux
+- Built-in caching, telemetry, and metrics (v0.3.0+)
+
+## Rendering Options
+
+```csharp
+var options = new RenderOptions
+{
+    Layout = LayoutEngine.Elk,
+    ThemeId = 1,
+    Sketch = true,
+    Pad = 75
+};
+
+var result = wrapper.RenderDiagram("server -> database", options);
+```
+
+## Async Rendering
+
+```csharp
+// With timeout
+var result = await wrapper.RenderDiagramAsync(
+    script,
+    timeout: TimeSpan.FromSeconds(30)
+);
+
+// With cancellation
+var cts = new CancellationTokenSource();
+var result = await wrapper.RenderDiagramAsync(script, cancellationToken: cts.Token);
+```
+
+## Error Handling
+
+```csharp
+var result = wrapper.RenderDiagram("A -> ");
+
+if (!result.IsSuccess)
+{
+    var error = result.Error;
+    Console.WriteLine($"Line {error.LineNumber}: {error.Message}");
+    Console.WriteLine(error.LineContent);
+}
+```
+
+## Observability (v0.3.0+)
+
+```csharp
+var options = new D2WrapperOptions
+{
+    EnableCaching = true,
+    EnableTelemetry = true,
+    EnableMetrics = true,
+    MaxConcurrentRenders = 10
+};
+
+using var wrapper = new D2Wrapper(options);
+var result = wrapper.RenderDiagram("A -> B");
+
+Console.WriteLine($"From cache: {result.FromCache}");
+Console.WriteLine($"Diagnostic ID: {result.DiagnosticId}");
+```
 
 ## Requirements
 
 - .NET 8.0 or later
 
-## Acknowledgements
+## Documentation
 
-D2Sharp is built on top of the following open-source projects:
-- [D2](https://github.com/terrastruct/d2): The underlying diagramming engine
-- [.NET](https://github.com/dotnet/runtime): The runtime and framework
+- [GitHub Repository](https://github.com/AlrikOlson/D2Sharp)
+- [D2 Language Docs](https://d2lang.com/)
+- [Issue Tracker](https://github.com/AlrikOlson/D2Sharp/issues)
 
-## Issues and Contributions
+## License
 
-For issues, feature requests, or contributions, please visit the [GitHub repository](https://github.com/AlrikOlson/D2Sharp).
+MIT License - see LICENSE.txt for details.

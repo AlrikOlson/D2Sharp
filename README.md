@@ -1,6 +1,6 @@
 # D2Sharp
 
-A production-ready .NET wrapper for [D2](https://d2lang.com/), the modern diagram scripting language that turns text to diagrams.
+A .NET wrapper for [D2](https://d2lang.com/), the modern diagram scripting language that turns text to diagrams.
 
 [![NuGet](https://img.shields.io/nuget/v/D2Sharp.svg)](https://www.nuget.org/packages/D2Sharp/)
 [![codecov](https://codecov.io/gh/AlrikOlson/D2Sharp/branch/main/graph/badge.svg)](https://codecov.io/gh/AlrikOlson/D2Sharp)
@@ -8,13 +8,13 @@ A production-ready .NET wrapper for [D2](https://d2lang.com/), the modern diagra
 
 ## Features
 
-✅ **Full D2 Support** - Render D2 diagrams with complete feature support
-✅ **Async/Await** - Task-based async rendering with cancellation and timeout support
-✅ **Production Ready** - Thread-safe, memory-leak protected, with comprehensive error handling
-✅ **Flexible Rendering** - Choose layout engines (Dagre/ELK), themes, sketch mode, and more
-✅ **Cross-Platform** - Works on Windows, macOS, and Linux
-✅ **Type-Safe** - Fully documented API with XML docs and nullable reference types
-✅ **Observability** - Built-in telemetry, metrics, and caching infrastructure (v0.3.0+)
+- **Full D2 Support** - Render D2 diagrams
+- **Async/Await** - Task-based async rendering with cancellation and timeout support
+- **Thread-Safe** - Thread-safe with memory leak protection and error handling
+- **Flexible Rendering** - Layout engines (Dagre/ELK), themes, sketch mode
+- **Cross-Platform** - Works on Windows, macOS, and Linux
+- **Type-Safe** - Documented API with XML docs and nullable reference types
+- **Observability** - Built-in telemetry, metrics, and caching (v0.3.0+)
 
 ## Installation
 
@@ -64,11 +64,11 @@ var result = await wrapper.RenderDiagramAsync(
 
 ## Rendering Options
 
-D2Sharp supports extensive customization through `RenderOptions`:
+Customize rendering with `RenderOptions`:
 
 ### Themes
 
-Choose from 300+ built-in themes:
+300+ themes available:
 
 ```csharp
 var options = new RenderOptions
@@ -97,7 +97,7 @@ var result = wrapper.RenderDiagram(@"
 ```
 
 - **Dagre** - Faster, simpler layouts (default)
-- **ELK** - More sophisticated layouts with advanced features
+- **ELK** - More complex layouts with additional features
 
 ### Sketch Mode
 
@@ -150,7 +150,7 @@ var result = wrapper.RenderDiagram(@"
 
 ## Error Handling
 
-D2Sharp provides detailed error information:
+Error information includes:
 
 ```csharp
 var result = wrapper.RenderDiagram("A -> ");  // Invalid script
@@ -173,7 +173,7 @@ if (!result.IsSuccess)
 
 ## Logging
 
-D2Sharp supports `Microsoft.Extensions.Logging`:
+Works with `Microsoft.Extensions.Logging`:
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -191,7 +191,7 @@ var result = wrapper.RenderDiagram("A -> B");
 
 ## Resource Management
 
-D2Sharp implements `IDisposable`:
+Implements `IDisposable`:
 
 ```csharp
 using var wrapper = new D2Wrapper();
@@ -228,7 +228,7 @@ Timeout bounds:
 
 ### Input Validation
 
-D2Sharp automatically validates:
+Automatic validation:
 - Maximum script length: 10MB
 - Timeout ranges
 - Disposed state
@@ -246,7 +246,7 @@ catch (ArgumentException ex)
 
 ## D2 Language Reference
 
-D2Sharp supports the full D2 language syntax:
+Full D2 language syntax:
 
 ```d2
 # Shapes and connections
@@ -273,7 +273,7 @@ direction: right
 
 ## Observability & Diagnostics (v0.3.0+)
 
-D2Sharp includes production-grade observability with built-in caching, distributed tracing, and real-time metrics.
+Built-in caching, distributed tracing, and real-time metrics.
 
 ### Quick Start with Observability
 
@@ -301,7 +301,7 @@ Console.WriteLine($"From cache: {result.FromCache}");
 
 ### Automatic Caching
 
-D2Sharp automatically caches successful renders based on script content and options:
+Caches successful renders based on script content and options:
 
 ```csharp
 var wrapper = new D2Wrapper(new D2WrapperOptions { EnableCaching = true });
@@ -345,7 +345,7 @@ var results = await Task.WhenAll(tasks);
 
 ### Distributed Tracing
 
-Built-in support for OpenTelemetry and Application Insights:
+Works with OpenTelemetry and Application Insights:
 
 ```csharp
 using System.Diagnostics;
@@ -390,7 +390,7 @@ dotnet-counters monitor -n YourApp --counters D2Sharp
 
 ### Diagnostic IDs
 
-Each render operation includes a unique diagnostic ID for log correlation:
+Every render gets a unique diagnostic ID for log correlation:
 
 ```csharp
 var wrapper = new D2Wrapper(new D2WrapperOptions { EnableDiagnosticIds = true });
@@ -423,8 +423,6 @@ using var wrapper = new D2Wrapper(options);
 ```
 
 ## Performance
-
-D2Sharp is designed for production performance:
 
 - **Thread-safe**: Safe for concurrent use across multiple threads
 - **Memory efficient**: Automatic cleanup with try-finally patterns, minimal allocations
@@ -500,7 +498,7 @@ MIT License - see [LICENSE.txt](LICENSE.txt) for details.
 ## Acknowledgments
 
 - [D2](https://github.com/terrastruct/d2) - The modern diagram scripting language
-- Built with ❤️ using .NET 8.0
+- Built with .NET 8.0
 
 ## Links
 

@@ -66,8 +66,10 @@ dotnet test
 
 - `src/D2Sharp` - Main library project
 - `src/D2Sharp/d2wrapper` - Go wrapper code for D2
+- `tests/D2Sharp.Tests` - Unit and integration tests
 - `examples/D2Sharp.Web` - Web demo application
-- `tests/D2Sharp.Tests` - Unit tests
+- `benchmarks/D2Sharp.Benchmarks` - Performance benchmarks
+- `tools/D2Sharp.DiagramCLI` - CLI testing tool
 
 ## Coding Standards
 
