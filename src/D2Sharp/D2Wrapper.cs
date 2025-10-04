@@ -24,6 +24,10 @@ public partial class D2Wrapper : IDisposable
     private const int MaxScriptLength = 10_000_000; // 10MB character limit
     private static readonly TimeSpan MinTimeout = TimeSpan.FromMilliseconds(100);
     private static readonly TimeSpan MaxTimeout = TimeSpan.FromMinutes(10);
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     [GeneratedRegex(@"Compilation error: (\d+):(\d+): (.+)", RegexOptions.Compiled)]
     private static partial Regex CompilationErrorRegex();
@@ -83,10 +87,7 @@ public partial class D2Wrapper : IDisposable
     {
         ThrowIfDisposed();
 
-        if (script == null)
-        {
-            throw new ArgumentNullException(nameof(script));
-        }
+        ArgumentNullException.ThrowIfNull(script);
 
         if (script.Length > MaxScriptLength)
         {
@@ -291,10 +292,7 @@ public partial class D2Wrapper : IDisposable
     {
         ThrowIfDisposed();
 
-        if (script == null)
-        {
-            throw new ArgumentNullException(nameof(script));
-        }
+        ArgumentNullException.ThrowIfNull(script);
 
         if (script.Length > MaxScriptLength)
         {
@@ -344,10 +342,7 @@ public partial class D2Wrapper : IDisposable
     {
         ThrowIfDisposed();
 
-        if (script == null)
-        {
-            throw new ArgumentNullException(nameof(script));
-        }
+        ArgumentNullException.ThrowIfNull(script);
 
         if (script.Length > MaxScriptLength)
         {
@@ -399,10 +394,7 @@ public partial class D2Wrapper : IDisposable
             forceAppendix = options.ForceAppendix
         };
 
-        return JsonSerializer.Serialize(jsonOptions, new JsonSerializerOptions
-        {
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        });
+        return JsonSerializer.Serialize(jsonOptions, JsonOptions);
     }
 
     private D2Error ParseError(string errorMessage, string script)
@@ -418,7 +410,6 @@ public partial class D2Wrapper : IDisposable
         int? lineNumber = null;
         string? lineContent = null;
         int? column = null;
-        string message = errorMessage;
 
         if (int.TryParse(match.Groups[1].Value, out int parsedLineNumber))
         {
@@ -431,7 +422,7 @@ public partial class D2Wrapper : IDisposable
             column = parsedColumn;
         }
 
-        message = match.Groups[3].Value.Trim();
+        string message = match.Groups[3].Value.Trim();
 
         return new D2Error
         {
@@ -442,7 +433,7 @@ public partial class D2Wrapper : IDisposable
         };
     }
 
-    private string GetLineContent(string script, int lineNumber)
+    private static string GetLineContent(string script, int lineNumber)
     {
         var lines = script.Split('\n');
         if (lineNumber > 0 && lineNumber <= lines.Length)
@@ -454,10 +445,7 @@ public partial class D2Wrapper : IDisposable
 
     private void ThrowIfDisposed()
     {
-        if (Interlocked.CompareExchange(ref _disposed, 0, 0) == 1)
-        {
-            throw new ObjectDisposedException(GetType().Name);
-        }
+        ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _disposed, 0, 0) == 1, this);
     }
 
     /// <summary>
@@ -562,9 +550,9 @@ public class D2Error
             highlightIndex = LineContent.Length - 1;
         }
 
-        string beforeError = LineContent.Substring(0, highlightIndex);
+        string beforeError = LineContent[..highlightIndex];
         string errorPart = LineContent.Substring(highlightIndex, 1);
-        string afterError = highlightIndex + 1 < LineContent.Length ? LineContent.Substring(highlightIndex + 1) : "";
+        string afterError = highlightIndex + 1 < LineContent.Length ? LineContent[(highlightIndex + 1)..] : "";
 
         return (beforeError, errorPart, afterError);
     }

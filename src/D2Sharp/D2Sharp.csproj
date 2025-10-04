@@ -10,10 +10,10 @@
 
         <!-- Version information -->
         <VersionPrefix>0.3.0</VersionPrefix>
-        <VersionSuffix>beta.1</VersionSuffix>
+        <VersionSuffix></VersionSuffix>
         <AssemblyVersion>0.3.0.0</AssemblyVersion>
         <FileVersion>0.3.0.0</FileVersion>
-        <InformationalVersion>$(VersionPrefix)-$(VersionSuffix)</InformationalVersion>
+        <InformationalVersion>$(VersionPrefix)</InformationalVersion>
 
         <!-- Package metadata -->
         <PackageId>D2Sharp</PackageId>

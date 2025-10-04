@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0-beta.1] - 2025-10-03
+## [0.3.0] - 2025-10-03
+
+### Code Quality
+- **Performance**: Cached `JsonSerializerOptions` instance to avoid repeated allocations
+- **Modern C#**: Used `ArgumentNullException.ThrowIfNull` for cleaner null checks (3 locations)
+- **Modern C#**: Used `ObjectDisposedException.ThrowIf` for cleaner disposal checks
+- **Readability**: Simplified substring operations with range operators (`[..]` syntax)
+- **Static Analysis**: Marked `GetLineContent` as static (doesn't access instance data)
+- **Code Cleanup**: Removed unnecessary variable assignment in error parsing
 
 ### Added - Phase 5b: Full Observability Integration
 - **Integrated Caching**: Automatic caching of successful renders
@@ -267,8 +275,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0-beta.1...HEAD
-[0.3.0-beta.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0-alpha.1...v0.3.0-beta.1
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0
 [0.3.0-alpha.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0-alpha.1
 [0.2.0-beta.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.1.0-alpha.7...v0.2.0-beta.1
