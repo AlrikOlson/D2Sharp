@@ -325,6 +325,16 @@ public class RenderResult
     public D2Error? Error { get; init; }
 
     /// <summary>
+    /// Gets the diagnostic ID for this render operation. Useful for correlating logs and telemetry.
+    /// </summary>
+    public string? DiagnosticId { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether this result was served from cache.
+    /// </summary>
+    public bool FromCache { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the rendering was successful.
     /// </summary>
     public bool IsSuccess => Error == null;

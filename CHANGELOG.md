@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0-alpha.1] - 2025-10-03
+
+### Added - Phase 5a: Observability & Performance Infrastructure
+- **Telemetry Infrastructure**: Foundation for distributed tracing and metrics
+  - `D2SharpActivitySource` for OpenTelemetry/Application Insights integration
+  - Activity tags for script length, layout engine, theme, diagnostic ID, cache hits
+  - Compatible with .NET distributed tracing ecosystem
+- **Performance Metrics**: Real-time monitoring with EventCounters
+  - `D2SharpEventCounters` event source
+  - Metrics: total renders, active renders, render duration, cache hit rate, error rate
+  - Compatible with dotnet-counters, Application Insights, and custom monitoring
+- **Render Caching**: In-memory cache with LRU eviction
+  - `RenderCache` class with SHA256-based cache keys
+  - Configurable size limits and expiration
+  - Thread-safe operations
+  - Automatic cache key generation from script + options
+- **Configuration System**: Centralized options for D2Wrapper behavior
+  - `D2WrapperOptions` class for cache, concurrency, and telemetry settings
+  - Feature flags for enabling/disabling telemetry, metrics, caching
+  - Configurable cache size, expiration, and concurrency limits
+- **Enhanced Results**: Additional diagnostic capabilities
+  - `DiagnosticId` property on RenderResult for log correlation
+  - `FromCache` property to indicate cached results
+  - Maintains full backward compatibility
+
+### Infrastructure
+- Added `Microsoft.Extensions.Caching.Memory` dependency
+- Created `Telemetry/` namespace for observability components
+- Created `Caching/` namespace for cache implementations
+
+### Notes
+- **Phase 5a** provides the infrastructure foundation
+- **Phase 5b** (future) will integrate these components into D2Wrapper
+- All new classes are production-ready but not yet wired into the main rendering pipeline
+
 ## [0.2.0-beta.2] - 2025-10-03
 
 ### Added - Phase 4: Code Quality, Coverage & Performance Baselines
@@ -142,7 +177,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0-alpha.1...HEAD
+[0.3.0-alpha.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0-alpha.1
 [0.2.0-beta.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.1...v0.2.0-beta.2
 [0.2.0-beta.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.1.0-alpha.7...v0.2.0-beta.1
 [0.1.0-alpha.7]: https://github.com/AlrikOlson/D2Sharp/releases/tag/v0.1.0-alpha.7

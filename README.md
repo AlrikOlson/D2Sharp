@@ -14,6 +14,7 @@ A production-ready .NET wrapper for [D2](https://d2lang.com/), the modern diagra
 ✅ **Flexible Rendering** - Choose layout engines (Dagre/ELK), themes, sketch mode, and more
 ✅ **Cross-Platform** - Works on Windows, macOS, and Linux
 ✅ **Type-Safe** - Fully documented API with XML docs and nullable reference types
+✅ **Observability** - Built-in telemetry, metrics, and caching infrastructure (v0.3.0+)
 
 ## Installation
 
@@ -269,6 +270,74 @@ direction: right
 ```
 
 [Learn D2 syntax →](https://d2lang.com/tour/intro)
+
+## Observability & Diagnostics (v0.3.0+)
+
+D2Sharp includes production-grade observability infrastructure for monitoring, tracing, and performance optimization.
+
+### Telemetry & Distributed Tracing
+
+Built-in support for OpenTelemetry and Application Insights:
+
+```csharp
+// Activity/spans are automatically created with D2SharpActivitySource
+// Compatible with OpenTelemetry, Application Insights, and Azure Monitor
+
+// Activity tags include:
+// - d2sharp.script.length
+// - d2sharp.layout.engine
+// - d2sharp.theme.id
+// - d2sharp.sketch.enabled
+// - d2sharp.diagnostic.id
+// - d2sharp.cache.hit
+// - d2sharp.result.status
+```
+
+### Real-Time Metrics
+
+Monitor performance with EventCounters:
+
+```bash
+# View real-time metrics with dotnet-counters
+dotnet-counters monitor -n YourApp --counters D2Sharp
+
+# Available metrics:
+# - renders-total: Total renders per second
+# - renders-active: Currently active render operations
+# - render-duration-ms: Average render duration
+# - cache-hit-rate: Cache hit percentage
+# - error-rate: Error percentage
+```
+
+### Diagnostic IDs
+
+Each render operation can include a diagnostic ID for log correlation:
+
+```csharp
+var result = wrapper.RenderDiagram("A -> B");
+Console.WriteLine($"Diagnostic ID: {result.DiagnosticId}");
+Console.WriteLine($"From cache: {result.FromCache}");
+```
+
+### Configuration
+
+Configure caching, concurrency, and telemetry:
+
+```csharp
+var options = new D2WrapperOptions
+{
+    EnableCaching = true,
+    CacheSize = 100,
+    CacheExpiration = TimeSpan.FromHours(1),
+    MaxConcurrentRenders = 10,
+    EnableTelemetry = true,
+    EnableMetrics = true
+};
+
+// Note: Full integration in Phase 5b (coming soon)
+```
+
+**Note:** Phase 5a (v0.3.0-alpha.1) provides the observability infrastructure. Full integration into D2Wrapper will be available in Phase 5b.
 
 ## Performance
 

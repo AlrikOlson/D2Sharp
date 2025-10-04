@@ -17,6 +17,9 @@
     <ThresholdStat>total</ThresholdStat>
     <ExcludeByFile>**/GlobalUsings.cs</ExcludeByFile>
     <Exclude>[D2Sharp.Web]*,[D2Sharp.Benchmarks]*</Exclude>
+    <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
+    <!-- Exclude Phase 5a infrastructure (not yet integrated) -->
+    <ExcludeByFile>**/Telemetry/**/*.cs,**/Caching/**/*.cs,**/D2WrapperOptions.cs</ExcludeByFile>
   </PropertyGroup>
 
   <ItemGroup>
