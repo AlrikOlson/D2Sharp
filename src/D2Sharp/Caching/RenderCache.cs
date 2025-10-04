@@ -56,7 +56,9 @@ internal sealed class RenderCache : IDisposable
     public void Set(string script, RenderOptions? options, RenderResult result, TimeSpan expiration)
     {
         if (_disposed)
+        {
             return;
+        }
 
         var cacheKey = GenerateCacheKey(script, options);
         var cacheEntryOptions = new MemoryCacheEntryOptions
@@ -75,7 +77,9 @@ internal sealed class RenderCache : IDisposable
     public void Clear()
     {
         if (_disposed)
+        {
             return;
+        }
 
         _cache.Dispose();
     }

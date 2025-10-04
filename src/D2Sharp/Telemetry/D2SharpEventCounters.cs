@@ -92,7 +92,11 @@ public sealed class D2SharpEventCounters : EventSource
             _cacheHitRateCounter ??= new PollingCounter("cache-hit-rate", this, () =>
             {
                 var requests = Interlocked.Read(ref _totalCacheRequests);
-                if (requests == 0) return 0;
+                if (requests == 0)
+                {
+                    return 0;
+                }
+
                 var hits = Interlocked.Read(ref _totalCacheHits);
                 return (double)hits / requests * 100;
             })
@@ -104,7 +108,11 @@ public sealed class D2SharpEventCounters : EventSource
             _errorRateCounter ??= new PollingCounter("error-rate", this, () =>
             {
                 var total = Interlocked.Read(ref _totalRenders);
-                if (total == 0) return 0;
+                if (total == 0)
+                {
+                    return 0;
+                }
+
                 var errors = Interlocked.Read(ref _totalErrors);
                 return (double)errors / total * 100;
             })

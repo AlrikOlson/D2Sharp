@@ -84,10 +84,14 @@ public partial class D2Wrapper : IDisposable
         ThrowIfDisposed();
 
         if (script == null)
+        {
             throw new ArgumentNullException(nameof(script));
+        }
 
         if (script.Length > MaxScriptLength)
+        {
             throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
+        }
 
         // Generate diagnostic ID if enabled
         var diagnosticId = _options.EnableDiagnosticIds
@@ -106,7 +110,9 @@ public partial class D2Wrapper : IDisposable
             activity.SetTag(D2SharpActivitySource.Tags.ThemeId, options?.ThemeId);
             activity.SetTag(D2SharpActivitySource.Tags.SketchMode, options?.Sketch ?? false);
             if (diagnosticId != null)
+            {
                 activity.SetTag(D2SharpActivitySource.Tags.DiagnosticId, diagnosticId);
+            }
         }
 
         _logger.LogDebug("Calling RenderDiagram with script (DiagnosticId: {DiagnosticId})", diagnosticId);
@@ -115,7 +121,9 @@ public partial class D2Wrapper : IDisposable
         if (_options.EnableCaching && _cache?.TryGet(script, options, out var cachedResult) == true)
         {
             if (_options.EnableMetrics)
+            {
                 D2SharpEventCounters.Instance.RecordCacheAccess(true);
+            }
 
             activity?.SetTag(D2SharpActivitySource.Tags.CacheHit, true);
             activity?.SetTag(D2SharpActivitySource.Tags.ResultStatus, "success");
@@ -128,13 +136,18 @@ public partial class D2Wrapper : IDisposable
         if (_options.EnableCaching)
         {
             if (_options.EnableMetrics)
+            {
                 D2SharpEventCounters.Instance.RecordCacheAccess(false);
+            }
+
             activity?.SetTag(D2SharpActivitySource.Tags.CacheHit, false);
         }
 
         // Record metrics
         if (_options.EnableMetrics)
+        {
             D2SharpEventCounters.Instance.RenderStarted();
+        }
 
         var sw = Stopwatch.StartNew();
         RenderResult? result = null;
@@ -156,13 +169,17 @@ public partial class D2Wrapper : IDisposable
         {
             sw.Stop();
             if (_options.EnableMetrics)
+            {
                 D2SharpEventCounters.Instance.RenderCompleted(sw.Elapsed.TotalMilliseconds, result?.IsSuccess ?? false);
+            }
 
             if (activity != null)
             {
                 activity.SetTag(D2SharpActivitySource.Tags.ResultStatus, result?.IsSuccess == true ? "success" : "error");
                 if (result?.Error != null)
+                {
                     activity.SetTag(D2SharpActivitySource.Tags.ErrorType, "compilation_error");
+                }
             }
         }
     }
@@ -275,10 +292,14 @@ public partial class D2Wrapper : IDisposable
         ThrowIfDisposed();
 
         if (script == null)
+        {
             throw new ArgumentNullException(nameof(script));
+        }
 
         if (script.Length > MaxScriptLength)
+        {
             throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
+        }
 
         // Apply concurrency limit if configured
         if (_concurrencySemaphore != null)
@@ -324,16 +345,24 @@ public partial class D2Wrapper : IDisposable
         ThrowIfDisposed();
 
         if (script == null)
+        {
             throw new ArgumentNullException(nameof(script));
+        }
 
         if (script.Length > MaxScriptLength)
+        {
             throw new ArgumentException($"Script exceeds maximum length of {MaxScriptLength} characters", nameof(script));
+        }
 
         if (timeout < MinTimeout)
+        {
             throw new ArgumentOutOfRangeException(nameof(timeout), $"Timeout must be at least {MinTimeout.TotalMilliseconds}ms");
+        }
 
         if (timeout > MaxTimeout)
+        {
             throw new ArgumentOutOfRangeException(nameof(timeout), $"Timeout must not exceed {MaxTimeout.TotalMinutes} minutes");
+        }
 
         using var timeoutCts = new CancellationTokenSource(timeout);
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token);
@@ -352,7 +381,9 @@ public partial class D2Wrapper : IDisposable
     private static string SerializeOptions(RenderOptions? options)
     {
         if (options == null)
+        {
             return "null";
+        }
 
         var jsonOptions = new
         {
