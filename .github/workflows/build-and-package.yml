@@ -54,6 +54,27 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
 
+    - name: Build native library for tests
+      shell: bash
+      run: |
+        cd src/D2Sharp/d2wrapper
+
+        # Determine library extension based on OS
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          LIB_EXT="dll"
+        elif [ "${{ runner.os }}" == "macOS" ]; then
+          LIB_EXT="dylib"
+        else
+          LIB_EXT="so"
+        fi
+
+        # Build the native library
+        go build -buildmode=c-shared -o "d2wrapper.$LIB_EXT" .
+
+        # Copy to test output directory
+        mkdir -p ../../../tests/D2Sharp.Tests/bin/Debug/net8.0
+        cp "d2wrapper.$LIB_EXT" ../../../tests/D2Sharp.Tests/bin/Debug/net8.0/
+
     - name: Test
       run: dotnet test --no-restore --verbosity normal
 
@@ -69,10 +90,22 @@ jobs:
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
 
-    - name: Build native library
+    - name: Build native library for packaging
+      shell: bash
       run: |
         cd src/D2Sharp/d2wrapper
-        go build -buildmode=c-shared -o d2wrapper${{ runner.os == 'Windows' && '.dll' || runner.os == 'macOS' && '.dylib' || '.so' }} .
+
+        # Determine library extension based on OS
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          LIB_EXT="dll"
+        elif [ "${{ runner.os }}" == "macOS" ]; then
+          LIB_EXT="dylib"
+        else
+          LIB_EXT="so"
+        fi
+
+        # Build the native library for packaging
+        go build -buildmode=c-shared -o "d2wrapper.$LIB_EXT" .
 
     - name: Upload D2Sharp build artifact
       uses: actions/upload-artifact@v4.6.1
