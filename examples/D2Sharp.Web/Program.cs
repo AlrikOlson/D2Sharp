@@ -6,7 +6,43 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddSingleton<D2Wrapper>();
 
+// Configure CORS
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DefaultCorsPolicy", policy =>
+    {
+        if (builder.Environment.IsDevelopment())
+        {
+            // In development, allow all origins
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            // In production, use configured origins
+            if (corsOrigins.Length > 0)
+            {
+                policy.WithOrigins(corsOrigins)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            }
+            else
+            {
+                // If no origins configured, allow none
+                policy.WithOrigins()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader();
+            }
+        }
+    });
+});
+
 var app = builder.Build();
+
+// Use CORS
+app.UseCors("DefaultCorsPolicy");
 
 // Enable serving static files and set default file
 app.UseDefaultFiles();
