@@ -22,9 +22,24 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # Windows performance optimization: Use Dev Drive (E:) for I/O operations
+      # Article: https://chadgolden.com/blog/github-actions-windows-runners-slow
+      # Dev Drive provides 30x faster IOPS than C: drive
+      DOTNET_INSTALL_DIR: ${{ runner.os == 'Windows' && 'E:\tools\dotnet' || '' }}
+      DOTNET_ROOT: ${{ runner.os == 'Windows' && 'E:\tools\dotnet' || '' }}
+      NUGET_PACKAGES: ${{ runner.os == 'Windows' && 'E:\.nuget\packages' || '~/.nuget/packages' }}
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Setup Dev Drive (Windows performance boost)
+      if: runner.os == 'Windows'
+      uses: samypr100/setup-dev-drive@v3
+      with:
+        drive-size: 8GB
+        drive-letter: E
+        drive-type: ReFS
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -39,7 +54,7 @@ jobs:
     - name: Cache NuGet packages
       uses: actions/cache@v4
       with:
-        path: ~/.nuget/packages
+        path: ${{ env.NUGET_PACKAGES }}
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
