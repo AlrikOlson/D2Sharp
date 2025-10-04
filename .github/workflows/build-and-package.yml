@@ -49,7 +49,7 @@ jobs:
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        echo "NUGET_PACKAGES=~/.nuget/packages" >> $GITHUB_ENV
+        echo "NUGET_PACKAGES=$HOME/.nuget/packages" >> $GITHUB_ENV
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
