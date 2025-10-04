@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Added - Phase 2: Critical Reliability
+- **Async/await support**: RenderDiagramAsync methods with CancellationToken support
+- **Timeout protection**: Configurable rendering timeout (default: 30s, production: 15s)
+- **IDisposable pattern**: Proper resource cleanup and disposal support
+- **Comprehensive async unit tests**: 15+ tests for async behavior, cancellation, timeout, and disposal
+- **Integration tests**: WebApplicationFactory-based tests for API endpoints
+- **Timeout exception handling**: 408 status code for timeouts, 499 for cancellations
+
+### Added - Phase 1: Production Foundations
 - Comprehensive XML documentation for all public APIs
 - xUnit test project with unit tests for D2Wrapper, D2Error, and RenderResult
 - CORS configuration with environment-specific settings
@@ -25,12 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CHANGELOG.md to track project changes
 
 ### Changed
+- **Web API now uses async rendering**: All /render endpoint calls are async with timeout protection
+- **D2Wrapper implements IDisposable**: Better resource management
 - Updated GitHub Actions to latest versions (checkout v4, setup-dotnet v4, setup-go v5, cache v4)
 - Enhanced Program.cs with production-ready middleware pipeline
 - Improved security posture with multiple layers of protection
 
 ### Fixed
+- **Go wrapper error handling**: Properly handle errors from textmeasure.NewRuler()
 - Added ArgumentNullException validation to RenderDiagram method
+- Added ObjectDisposedException checks in all public methods
 
 ### Security
 - Added rate limiting to prevent abuse
@@ -38,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configured CORS policies for controlled cross-origin access
 - Implemented request size limits to prevent DoS attacks
 - Non-root user in Docker container for improved security
+- Timeout protection prevents resource exhaustion from long-running renders
+
+### Performance
+- Async rendering prevents thread pool starvation under load
+- Configurable timeouts allow better resource management
+- CancellationToken support enables graceful request cancellation
 
 ## [0.1.0-alpha.7]
 
