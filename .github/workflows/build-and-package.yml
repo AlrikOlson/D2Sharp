@@ -212,9 +212,16 @@ jobs:
         </package>
         EOF
 
+    - name: Install NuGet CLI
+      if: steps.check_changes.outputs.run_package == 'true'
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq mono-complete
+        curl -o nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
+
     - name: Pack NuGet package
       if: steps.check_changes.outputs.run_package == 'true'
-      run: nuget pack D2Sharp.nuspec -BasePath package
+      run: mono nuget.exe pack D2Sharp.nuspec -BasePath package
 
     - name: Upload NuGet package
       if: steps.check_changes.outputs.run_package == 'true'
