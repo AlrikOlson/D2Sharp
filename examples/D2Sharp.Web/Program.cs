@@ -2,11 +2,37 @@ using D2Sharp;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<D2Wrapper>();
+
+// Add health checks
+builder.Services.AddHealthChecks();
+
+// Add Swagger/OpenAPI
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "D2Sharp API",
+        Version = "v1",
+        Description = "API for rendering D2 diagrams as SVG",
+        Contact = new OpenApiContact
+        {
+            Name = "D2Sharp Project",
+            Url = new Uri("https://github.com/AlrikOlson/D2Sharp")
+        },
+        License = new OpenApiLicense
+        {
+            Name = "MIT",
+            Url = new Uri("https://github.com/AlrikOlson/D2Sharp/blob/main/LICENSE.txt")
+        }
+    });
+});
 
 // Configure rate limiting
 builder.Services.AddRateLimiter(options =>
@@ -67,6 +93,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Enable Swagger in all environments (can be restricted to Development if needed)
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "D2Sharp API v1");
+    options.RoutePrefix = "api-docs"; // Access at /api-docs instead of root
+});
+
 // Add security headers middleware
 app.Use(async (context, next) =>
 {
@@ -92,6 +126,11 @@ app.UseCors("DefaultCorsPolicy");
 // Enable serving static files and set default file
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+// Map health check endpoints
+app.MapHealthChecks("/health").WithTags("Health");
+app.MapHealthChecks("/health/ready").WithTags("Health");
+app.MapHealthChecks("/health/live").WithTags("Health");
 
 app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest request, D2Wrapper d2Wrapper) =>
 {
@@ -133,7 +172,15 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
         };
         return Results.BadRequest(errorResponse);
     }
-}).RequireRateLimiting("RenderEndpoint");
+})
+.RequireRateLimiting("RenderEndpoint")
+.WithName("RenderDiagram")
+.WithTags("Diagram")
+.WithOpenApi(operation => new(operation)
+{
+    Summary = "Render a D2 diagram",
+    Description = "Accepts a D2 diagram script and returns the rendered SVG"
+});
 
 app.Run();
 
