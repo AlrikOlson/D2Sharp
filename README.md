@@ -6,9 +6,19 @@ D2Sharp wraps the D2 diagramming library for .NET, allowing you to render D2 dia
 
 ## Features
 
-- Render diagrams as SVG
+- Render D2 diagrams as SVG
 - Integrate with ASP.NET Core for web applications
-- Includes a web demo for quick testing
+- Comprehensive error handling with line/column information
+- Production-ready web API with:
+  - Rate limiting to prevent abuse
+  - CORS configuration with environment-based policies
+  - Security headers (HSTS, X-Frame-Options, etc.)
+  - Input validation and request size limits
+  - Swagger/OpenAPI documentation
+  - Health check endpoints
+- Docker support with multi-stage builds
+- Comprehensive test suite
+- Full XML API documentation
 
 ## Prerequisites for Building
 
@@ -89,12 +99,79 @@ else
 }
 ```
 
-Running the web demo:
+## Running the Web Demo
 
-```
+### With .NET CLI
+
+```bash
 cd examples/D2Sharp.Web
 dotnet run
 ```
+
+Then visit:
+- Application: http://localhost:5044
+- API Documentation: http://localhost:5044/api-docs
+- Health Check: http://localhost:5044/health
+
+### With Docker
+
+```bash
+# Build and run with docker-compose
+docker-compose up --build
+
+# Or build and run manually
+docker build -t d2sharp .
+docker run -p 8080:8080 d2sharp
+```
+
+Then visit:
+- Application: http://localhost:8080
+- API Documentation: http://localhost:8080/api-docs
+- Health Check: http://localhost:8080/health
+
+## API Documentation
+
+The web API includes Swagger/OpenAPI documentation. When running the application, navigate to `/api-docs` to see the interactive API documentation.
+
+### Endpoints
+
+- `POST /render` - Render a D2 diagram script and return SVG
+- `GET /health` - Health check endpoint
+- `GET /health/ready` - Readiness check endpoint
+- `GET /health/live` - Liveness check endpoint
+
+## Security Features
+
+The web demo includes several security features:
+
+- **Rate Limiting**: Configurable per-endpoint rate limits
+- **CORS**: Environment-based CORS policies
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, HSTS
+- **Input Validation**: Script length limits and request size restrictions
+- **Non-root Docker**: Container runs as non-root user
+
+## Configuration
+
+Configuration is managed through `appsettings.json` with environment-specific overrides. Key settings:
+
+- `RateLimiting:PermitLimit` - Global rate limit
+- `RateLimiting:RenderEndpoint:PermitLimit` - Render endpoint rate limit
+- `Validation:MaxScriptLength` - Maximum script length in characters
+- `Cors:AllowedOrigins` - Allowed CORS origins (Production only)
+
+## Testing
+
+```bash
+# Run all tests
+dotnet test
+
+# Run with coverage
+dotnet test /p:CollectCoverage=true
+```
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Acknowledgements
 
