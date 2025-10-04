@@ -22,13 +22,6 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      # Windows performance optimization: Use Dev Drive (E:) for I/O operations
-      # Article: https://chadgolden.com/blog/github-actions-windows-runners-slow
-      # Dev Drive provides 30x faster IOPS than C: drive
-      DOTNET_INSTALL_DIR: ${{ runner.os == 'Windows' && 'E:\tools\dotnet' || '' }}
-      DOTNET_ROOT: ${{ runner.os == 'Windows' && 'E:\tools\dotnet' || '' }}
-      NUGET_PACKAGES: ${{ runner.os == 'Windows' && 'E:\.nuget\packages' || '~/.nuget/packages' }}
 
     steps:
     - uses: actions/checkout@v4
@@ -41,6 +34,22 @@ jobs:
         drive-letter: E
         drive-type: ReFS
 
+    - name: Configure Windows environment for performance
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        # Windows performance optimization: Use Dev Drive (E:) for I/O operations
+        # Article: https://chadgolden.com/blog/github-actions-windows-runners-slow
+        # Dev Drive provides 30x faster IOPS than C: drive
+        echo "DOTNET_INSTALL_DIR=E:\\tools\\dotnet" >> $GITHUB_ENV
+        echo "DOTNET_ROOT=E:\\tools\\dotnet" >> $GITHUB_ENV
+        echo "NUGET_PACKAGES=E:\\.nuget\\packages" >> $GITHUB_ENV
+
+    - name: Configure non-Windows environment
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "NUGET_PACKAGES=~/.nuget/packages" >> $GITHUB_ENV
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
