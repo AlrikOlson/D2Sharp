@@ -2,6 +2,7 @@
 *.a
 *.so
 *.dll
+*.dylib
 *.exe
 *.test
 *.prof
@@ -84,6 +85,12 @@ bld/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Code Coverage
+coverage/
+*.coverage
+*.coveragexml
+TestResults/
 
 # Build Results of an ATL Project
 [Dd]ebugPS/

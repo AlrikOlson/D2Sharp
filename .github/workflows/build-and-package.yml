@@ -24,22 +24,46 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
+    - name: Setup Dev Drive (Windows performance boost)
+      if: runner.os == 'Windows'
+      uses: samypr100/setup-dev-drive@v3
+      with:
+        drive-size: 8GB
+        drive-type: Fixed
+        drive-format: ReFS
+
+    - name: Configure Windows environment for performance
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        # Windows performance optimization: Use Dev Drive (E:) for I/O operations
+        # Article: https://chadgolden.com/blog/github-actions-windows-runners-slow
+        # Dev Drive provides 30x faster IOPS than C: drive
+        echo "DOTNET_INSTALL_DIR=E:\\tools\\dotnet" >> $GITHUB_ENV
+        echo "DOTNET_ROOT=E:\\tools\\dotnet" >> $GITHUB_ENV
+        echo "NUGET_PACKAGES=E:\\.nuget\\packages" >> $GITHUB_ENV
+
+    - name: Configure non-Windows environment
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "NUGET_PACKAGES=$HOME/.nuget/packages" >> $GITHUB_ENV
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
     - name: Setup Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Cache NuGet packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
-        path: ~/.nuget/packages
+        path: ${{ env.NUGET_PACKAGES }}
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
@@ -54,13 +78,58 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
 
+    - name: Build native library for tests
+      shell: bash
+      run: |
+        cd src/D2Sharp/d2wrapper
+
+        # Determine library extension based on OS
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          LIB_EXT="dll"
+        elif [ "${{ runner.os }}" == "macOS" ]; then
+          LIB_EXT="dylib"
+        else
+          LIB_EXT="so"
+        fi
+
+        # Build the native library
+        go build -buildmode=c-shared -o "d2wrapper.$LIB_EXT" .
+
+        # Copy to test output directory
+        mkdir -p ../../../tests/D2Sharp.Tests/bin/Debug/net8.0
+        cp "d2wrapper.$LIB_EXT" ../../../tests/D2Sharp.Tests/bin/Debug/net8.0/
+
     - name: Test
       run: dotnet test --no-restore --verbosity normal
 
-    - name: Build native library
+    - name: Test with Coverage
+      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./tests/D2Sharp.Tests/coverage/coverage.cobertura.xml
+        flags: ${{ matrix.os }}
+        name: codecov-${{ matrix.os }}
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Build native library for packaging
+      shell: bash
       run: |
         cd src/D2Sharp/d2wrapper
-        go build -buildmode=c-shared -o d2wrapper${{ runner.os == 'Windows' && '.dll' || runner.os == 'macOS' && '.dylib' || '.so' }} .
+
+        # Determine library extension based on OS
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          LIB_EXT="dll"
+        elif [ "${{ runner.os }}" == "macOS" ]; then
+          LIB_EXT="dylib"
+        else
+          LIB_EXT="so"
+        fi
+
+        # Build the native library for packaging
+        go build -buildmode=c-shared -o "d2wrapper.$LIB_EXT" .
 
     - name: Upload D2Sharp build artifact
       uses: actions/upload-artifact@v4.6.1
@@ -87,7 +156,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 2
 
@@ -104,7 +173,7 @@ jobs:
 
     - name: Setup .NET
       if: steps.check_changes.outputs.run_package == 'true'
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -114,62 +183,20 @@ jobs:
       with:
         path: artifacts
 
-    - name: Prepare files for packaging
+    - name: Prepare native libraries for packaging
       if: steps.check_changes.outputs.run_package == 'true'
       run: |
-        mkdir -p package/lib/net8.0
-        mkdir -p package/runtimes/win-x64/native
-        mkdir -p package/runtimes/linux-x64/native
-        mkdir -p package/runtimes/osx-x64/native
-        
-        cp artifacts/d2net-ubuntu-latest/D2Sharp.dll package/lib/net8.0/
-        cp artifacts/d2wrapper-windows-latest/d2wrapper.dll package/runtimes/win-x64/native/
-        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so package/runtimes/linux-x64/native/
-        cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib package/runtimes/osx-x64/native/
+        mkdir -p src/D2Sharp/runtimes/win-x64/native
+        mkdir -p src/D2Sharp/runtimes/linux-x64/native
+        mkdir -p src/D2Sharp/runtimes/osx-x64/native
 
-    - name: Get version
-      if: steps.check_changes.outputs.run_package == 'true'
-      id: get_version
-      run: |
-        VERSION=$(grep -oP '(?<=<VersionPrefix>).*(?=</VersionPrefix>)' src/D2Sharp/D2Sharp.csproj)
-        SUFFIX=$(grep -oP '(?<=<VersionSuffix>).*(?=</VersionSuffix>)' src/D2Sharp/D2Sharp.csproj)
-        if [ ! -z "$SUFFIX" ]; then
-          VERSION="$VERSION-$SUFFIX"
-        fi
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-    - name: Create nuspec file
-      if: steps.check_changes.outputs.run_package == 'true'
-      run: |
-        cat << EOF > D2Sharp.nuspec
-        <?xml version="1.0" encoding="utf-8"?>
-        <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-          <metadata>
-            <id>D2Sharp</id>
-            <version>${{ steps.get_version.outputs.VERSION }}</version>
-            <authors>Alrik Olson</authors>
-            <description>A .NET wrapper for the D2 library</description>
-            <projectUrl>https://github.com/AlrikOlson/D2Sharp</projectUrl>
-            <repository type="git" url="https://github.com/AlrikOlson/D2Sharp.git" />
-            <tags>d2 diagram visualization</tags>
-            <readme>README.nuget.md</readme>
-            <dependencies>
-              <group targetFramework="net8.0">
-                <dependency id="Microsoft.Extensions.Logging" version="8.0.0" />
-              </group>
-            </dependencies>
-          </metadata>
-          <files>
-            <file src="lib/net8.0/D2Sharp.dll" target="lib/net8.0" />
-            <file src="runtimes/**/*" target="runtimes" />
-            <file src="../README.nuget.md" target="\" />
-          </files>
-        </package>
-        EOF
+        cp artifacts/d2wrapper-windows-latest/d2wrapper.dll src/D2Sharp/runtimes/win-x64/native/
+        cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so src/D2Sharp/runtimes/linux-x64/native/
+        cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib src/D2Sharp/runtimes/osx-x64/native/
 
     - name: Pack NuGet package
       if: steps.check_changes.outputs.run_package == 'true'
-      run: nuget pack D2Sharp.nuspec -BasePath package
+      run: dotnet pack src/D2Sharp/D2Sharp.csproj --configuration Release --output .
 
     - name: Upload NuGet package
       if: steps.check_changes.outputs.run_package == 'true'
@@ -188,7 +215,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 2
 

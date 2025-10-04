@@ -1,0 +1,45 @@
+# Ignore build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# Ignore OS and IDE files
+**/.DS_Store
+**/.vs/
+**/.vscode/
+**/.idea/
+*.swp
+*~
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore documentation
+*.md
+!README.md
+
+# Ignore test results
+**/*.trx
+**/*.log
+
+# Ignore packages
+**/packages/
+**/*.nupkg
+**/*.snupkg
+
+# Ignore Go build artifacts
+**/*.so
+**/*.dll
+**/*.dylib
+**/*.a
+**/*.h
+**/vendor/
+
+# Ignore node modules if any
+**/node_modules/
+
+# Keep necessary files
+!src/
+!examples/
+!D2Sharp.sln

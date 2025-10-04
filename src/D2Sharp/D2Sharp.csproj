@@ -9,15 +9,24 @@
         <LangVersion>latest</LangVersion>
 
         <!-- Version information -->
-        <VersionPrefix>0.1.0</VersionPrefix>
-        <VersionSuffix>alpha.7</VersionSuffix>
-        <AssemblyVersion>0.1.0.0</AssemblyVersion>
-        <FileVersion>0.1.0.0</FileVersion>
-        <InformationalVersion>$(VersionPrefix)-$(VersionSuffix)</InformationalVersion>
+        <VersionPrefix>0.3.0</VersionPrefix>
+        <VersionSuffix></VersionSuffix>
+        <AssemblyVersion>0.3.0.0</AssemblyVersion>
+        <FileVersion>0.3.0.0</FileVersion>
+        <InformationalVersion>$(VersionPrefix)</InformationalVersion>
 
         <!-- Package metadata -->
+        <PackageId>D2Sharp</PackageId>
         <Product>D2Sharp</Product>
-        <Description>A .NET wrapper for the D2 library</Description>
+        <Authors>AlrikOlson</Authors>
+        <Description>A production-ready .NET wrapper for D2, the modern diagram scripting language. Render D2 diagrams as SVG with full support for themes, layout engines (Dagre/ELK), sketch mode, and async/await patterns. Thread-safe, cross-platform, and ready for production use.</Description>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+        <PackageProjectUrl>https://github.com/AlrikOlson/D2Sharp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/AlrikOlson/D2Sharp</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>d2;diagrams;visualization;svg;d2lang;graph;chart;dagre;elk;rendering</PackageTags>
+        <PackageReleaseNotes>See CHANGELOG.md for release notes</PackageReleaseNotes>
 
         <!-- Documentation and symbols -->
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -41,20 +50,34 @@
     </Target>
 
     <ItemGroup>
-        <Content Include="runtimes\**\*" Condition="'$(CI)' != 'true'">
+        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="runtimes\**\*">
             <Pack>true</Pack>
             <PackagePath>runtimes</PackagePath>
         </Content>
     </ItemGroup>
 
+    <PropertyGroup>
+        <NativeLibExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.dll</NativeLibExtension>
+        <NativeLibExtension Condition="$([MSBuild]::IsOSPlatform('OSX'))">.dylib</NativeLibExtension>
+        <NativeLibExtension Condition="$([MSBuild]::IsOSPlatform('Linux'))">.so</NativeLibExtension>
+        <NativeLibExtension Condition="'$(NativeLibExtension)' == ''">.dll</NativeLibExtension>
+        <NativeLibName>d2wrapper$(NativeLibExtension)</NativeLibName>
+    </PropertyGroup>
+
     <ItemGroup>
-        <None Include="$(OutputPath)\d2wrapper.dll" Link="d2wrapper.dll" Condition="'$(CI)' != 'true'">
+        <None Include="$(OutputPath)\$(NativeLibName)" Link="$(NativeLibName)" Condition="'$(CI)' != 'true'">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1"/>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
