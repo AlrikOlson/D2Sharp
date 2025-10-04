@@ -1,0 +1,38 @@
+# Web Application Architecture
+direction: right
+
+client: Web Browser {
+  shape: person
+}
+
+loadbalancer: Load Balancer {
+  shape: hexagon
+}
+
+webserver1: Web Server 1 {
+  shape: rectangle
+}
+
+webserver2: Web Server 2 {
+  shape: rectangle
+}
+
+apiserver: API Server {
+  shape: rectangle
+}
+
+database: Database {
+  shape: cylinder
+}
+
+cache: Redis Cache {
+  shape: stored_data
+}
+
+client -> loadbalancer: HTTPS
+loadbalancer -> webserver1: HTTP
+loadbalancer -> webserver2: HTTP
+webserver1 -> apiserver: REST API
+webserver2 -> apiserver: REST API
+apiserver -> database: SQL
+apiserver -> cache: Cache queries

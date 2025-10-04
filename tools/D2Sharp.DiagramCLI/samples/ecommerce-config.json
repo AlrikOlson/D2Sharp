@@ -1,0 +1,149 @@
+{
+  "name": "E-Commerce System Architecture",
+  "components": [
+    {
+      "id": "frontend",
+      "name": "React Frontend",
+      "shape": "rectangle",
+      "description": "User-facing web application"
+    },
+    {
+      "id": "cdn",
+      "name": "CDN",
+      "shape": "cloud",
+      "description": "Static asset delivery"
+    },
+    {
+      "id": "apigateway",
+      "name": "API Gateway",
+      "shape": "hexagon",
+      "description": "Entry point for all API requests"
+    },
+    {
+      "id": "catalog",
+      "name": "Catalog Service",
+      "shape": "rectangle",
+      "description": "Product catalog management"
+    },
+    {
+      "id": "cart",
+      "name": "Shopping Cart Service",
+      "shape": "rectangle",
+      "description": "Shopping cart management"
+    },
+    {
+      "id": "checkout",
+      "name": "Checkout Service",
+      "shape": "rectangle",
+      "description": "Order processing"
+    },
+    {
+      "id": "payment",
+      "name": "Payment Service",
+      "shape": "rectangle",
+      "description": "Payment processing"
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory Service",
+      "shape": "rectangle",
+      "description": "Inventory management"
+    },
+    {
+      "id": "maindb",
+      "name": "PostgreSQL",
+      "shape": "cylinder",
+      "description": "Main relational database"
+    },
+    {
+      "id": "cache",
+      "name": "Redis Cache",
+      "shape": "stored_data",
+      "description": "Caching layer"
+    },
+    {
+      "id": "search",
+      "name": "Elasticsearch",
+      "shape": "stored_data",
+      "description": "Product search"
+    },
+    {
+      "id": "queue",
+      "name": "RabbitMQ",
+      "shape": "queue",
+      "description": "Message queue"
+    }
+  ],
+  "connections": [
+    {
+      "from": "frontend",
+      "to": "cdn",
+      "label": "Static assets"
+    },
+    {
+      "from": "frontend",
+      "to": "apigateway",
+      "label": "API calls"
+    },
+    {
+      "from": "apigateway",
+      "to": "catalog",
+      "label": "Product queries"
+    },
+    {
+      "from": "apigateway",
+      "to": "cart",
+      "label": "Cart operations"
+    },
+    {
+      "from": "apigateway",
+      "to": "checkout",
+      "label": "Checkout"
+    },
+    {
+      "from": "catalog",
+      "to": "maindb",
+      "label": "Read/Write"
+    },
+    {
+      "from": "catalog",
+      "to": "cache",
+      "label": "Cache"
+    },
+    {
+      "from": "catalog",
+      "to": "search",
+      "label": "Index"
+    },
+    {
+      "from": "cart",
+      "to": "cache",
+      "label": "Store cart"
+    },
+    {
+      "from": "checkout",
+      "to": "payment",
+      "label": "Process payment"
+    },
+    {
+      "from": "checkout",
+      "to": "inventory",
+      "label": "Reserve items"
+    },
+    {
+      "from": "checkout",
+      "to": "queue",
+      "label": "Order events"
+    },
+    {
+      "from": "payment",
+      "to": "maindb",
+      "label": "Transactions"
+    },
+    {
+      "from": "inventory",
+      "to": "maindb",
+      "label": "Stock levels"
+    }
+  ]
+}
