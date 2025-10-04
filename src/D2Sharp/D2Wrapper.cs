@@ -5,10 +5,17 @@ using System.Text.RegularExpressions;
 
 namespace D2Sharp;
 
+/// <summary>
+/// Provides functionality to render D2 diagrams as SVG.
+/// </summary>
 public partial class D2Wrapper
 {
     private readonly ILogger<D2Wrapper> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="D2Wrapper"/> class.
+    /// </summary>
+    /// <param name="logger">Optional logger for diagnostic output.</param>
     public D2Wrapper(ILogger<D2Wrapper>? logger = null)
     {
         _logger = logger ?? NullLogger<D2Wrapper>.Instance;
@@ -20,8 +27,17 @@ public partial class D2Wrapper
     [LibraryImport("d2wrapper", EntryPoint = "FreeDiagram")]
     private static partial void FreeDiagram(IntPtr ptr);
 
+    /// <summary>
+    /// Renders a D2 diagram script as SVG.
+    /// </summary>
+    /// <param name="script">The D2 diagram script to render.</param>
+    /// <returns>A <see cref="RenderResult"/> containing either the SVG output or error information.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
     public RenderResult RenderDiagram(string script)
     {
+        if (script == null)
+            throw new ArgumentNullException(nameof(script));
+
         _logger.LogDebug("Calling RenderDiagram with script");
 
         IntPtr errorPtr;
@@ -82,20 +98,56 @@ public partial class D2Wrapper
     }
 }
 
+/// <summary>
+/// Represents the result of a D2 diagram rendering operation.
+/// </summary>
 public class RenderResult
 {
+    /// <summary>
+    /// Gets or sets the rendered SVG output. Null if rendering failed.
+    /// </summary>
     public string? Svg { get; set; }
+
+    /// <summary>
+    /// Gets or sets error information if rendering failed. Null if successful.
+    /// </summary>
     public D2Error? Error { get; set; }
+
+    /// <summary>
+    /// Gets a value indicating whether the rendering was successful.
+    /// </summary>
     public bool IsSuccess => Error == null;
 }
 
+/// <summary>
+/// Represents detailed error information from a failed D2 diagram rendering.
+/// </summary>
 public class D2Error
 {
+    /// <summary>
+    /// Gets or sets the error message.
+    /// </summary>
     public string Message { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the line number where the error occurred, if available.
+    /// </summary>
     public int? LineNumber { get; set; }
+
+    /// <summary>
+    /// Gets or sets the column number where the error occurred, if available.
+    /// </summary>
     public int? Column { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content of the line where the error occurred, if available.
+    /// </summary>
     public string? LineContent { get; set; }
 
+    /// <summary>
+    /// Gets the line content split into parts before, at, and after the error position for highlighting.
+    /// </summary>
+    /// <returns>A tuple containing the text before the error, the error character, and the text after the error.</returns>
     public (string beforeError, string errorPart, string afterError) GetHighlightedLineParts()
     {
         if (string.IsNullOrEmpty(LineContent) || !Column.HasValue || Column.Value <= 0)
