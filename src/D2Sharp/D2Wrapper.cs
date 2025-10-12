@@ -278,6 +278,38 @@ public partial class D2Wrapper : IDisposable
     }
 
     /// <summary>
+    /// Runs a function on a dedicated thread with a larger stack (8MB) to avoid stack overflows
+    /// when calling native code that may use deep recursion.
+    /// </summary>
+    private static Task<T> RunOnDedicatedThread<T>(Func<T> func, CancellationToken cancellationToken)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    tcs.SetCanceled(cancellationToken);
+                    return;
+                }
+
+                var result = func();
+                tcs.SetResult(result);
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+        }, 8 * 1024 * 1024); // 8MB stack size (matches Linux default thread stack)
+
+        thread.IsBackground = true;
+        thread.Start();
+
+        return tcs.Task;
+    }
+
+    /// <summary>
     /// Asynchronously renders a D2 diagram script as SVG.
     /// </summary>
     /// <param name="script">The D2 diagram script to render.</param>
@@ -305,7 +337,7 @@ public partial class D2Wrapper : IDisposable
             await _concurrencySemaphore.WaitAsync(cancellationToken);
             try
             {
-                return await Task.Run(() =>
+                return await RunOnDedicatedThread(() =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     return RenderDiagram(script, options);
@@ -317,7 +349,7 @@ public partial class D2Wrapper : IDisposable
             }
         }
 
-        return await Task.Run(() =>
+        return await RunOnDedicatedThread(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             return RenderDiagram(script, options);
