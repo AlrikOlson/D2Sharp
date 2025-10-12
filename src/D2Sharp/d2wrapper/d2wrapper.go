@@ -40,6 +40,13 @@ type RenderOptionsJSON struct {
 
 //export RenderDiagram
 func RenderDiagram(script *C.char, optionsJSON *C.char, errorPtr **C.char) *C.char {
+	// Recover from panics to prevent crashing the host process
+	defer func() {
+		if r := recover(); r != nil {
+			*errorPtr = C.CString(fmt.Sprintf("Panic during rendering: %v", r))
+		}
+	}()
+
 	goScript := C.GoString(script)
 	goOptionsJSON := C.GoString(optionsJSON)
 
