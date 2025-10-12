@@ -5,23 +5,383 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D2Sharp Web Demo</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        textarea { width: 100%; height: 200px; }
-        #result { margin-top: 20px; }
-        .error { color: red; }
-        .error-line { font-family: monospace; white-space: pre; background-color: #ffeeee; padding: 5px; border-radius: 3px; }
-        .error-highlight { background-color: #ff6666; color: white; font-weight: bold; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab:hover {
+            color: #667eea;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            font-family: 'Courier New', monospace;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            resize: vertical;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        .error {
+            color: #d32f2f;
+            font-weight: 500;
+        }
+        .error-line {
+            font-family: monospace;
+            white-space: pre;
+            background-color: #ffeeee;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #d32f2f;
+        }
+        .error-highlight {
+            background-color: #ff6666;
+            color: white;
+            font-weight: bold;
+        }
+        .stress-test {
+            max-width: 100%;
+        }
+        .stress-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .stress-status {
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .stress-status.running {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .stress-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .stress-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .phase-results {
+            display: grid;
+            gap: 20px;
+        }
+        .phase-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .phase-card.completed {
+            border-left-color: #28a745;
+        }
+        .phase-card.running {
+            border-left-color: #ffc107;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .phase-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+        }
+        .phase-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .phase-badge.completed {
+            background: #28a745;
+            color: white;
+        }
+        .phase-badge.running {
+            background: #ffc107;
+            color: #333;
+        }
+        .phase-badge.pending {
+            background: #e0e0e0;
+            color: #666;
+        }
+        .phase-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .summary-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+        .summary-stat {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .summary-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .summary-stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .rating {
+            font-size: 48px;
+            font-weight: 700;
+            margin-top: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .live-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-radius: 8px;
+        }
+        .live-metric {
+            text-align: center;
+        }
+        .live-metric-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .live-metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        .activity-log {
+            max-height: 150px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .activity-log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .activity-log-entry:last-child {
+            border-bottom: none;
+        }
+        .activity-log-timestamp {
+            color: #999;
+            margin-right: 10px;
+        }
+        @keyframes countUp {
+            from { transform: scale(1.2); }
+            to { transform: scale(1); }
+        }
+        .stat-value.updated {
+            animation: countUp 0.3s ease-out;
+        }
     </style>
 </head>
 <body>
-    <h1>D2Sharp Web Demo</h1>
-    <textarea id="script" placeholder="Enter your D2 script here...">direction: right
-A -> B ->
-C -> D</textarea>
-    <button onclick="renderDiagram()">Render Diagram</button>
-    <div id="result"></div>
+    <div class="container">
+        <h1>D2Sharp Web Demo</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('diagram')">Diagram Renderer</button>
+            <button class="tab" onclick="switchTab('stress')">Stress Test</button>
+        </div>
+
+        <!-- Diagram Tab -->
+        <div id="diagram-tab" class="tab-content active">
+            <textarea id="script" placeholder="Enter your D2 script here...">direction: right
+A -> B -> C -> D</textarea>
+            <button onclick="renderDiagram()">Render Diagram</button>
+            <div id="result"></div>
+        </div>
+
+        <!-- Stress Test Tab -->
+        <div id="stress-tab" class="tab-content">
+            <div class="stress-test">
+                <div class="stress-controls">
+                    <button id="runStressTest" onclick="runStressTest()">Run Stress Test</button>
+                    <span id="testInfo">825 requests across 4 phases</span>
+                </div>
+
+                <div id="liveMetrics" class="live-metrics" style="display: none;">
+                    <div class="live-metric">
+                        <div class="live-metric-value" id="liveTotal">0</div>
+                        <div class="live-metric-label">Total Requests</div>
+                    </div>
+                    <div class="live-metric">
+                        <div class="live-metric-value" id="liveSuccess">0</div>
+                        <div class="live-metric-label">Successful</div>
+                    </div>
+                    <div class="live-metric">
+                        <div class="live-metric-value" id="liveFailed">0</div>
+                        <div class="live-metric-label">Failed</div>
+                    </div>
+                    <div class="live-metric">
+                        <div class="live-metric-value" id="liveRate">0</div>
+                        <div class="live-metric-label">Req/sec</div>
+                    </div>
+                    <div class="live-metric">
+                        <div class="live-metric-value" id="liveElapsed">0s</div>
+                        <div class="live-metric-label">Elapsed</div>
+                    </div>
+                </div>
+
+                <div id="stressStatus" class="stress-status" style="display: none;">
+                    Ready to start
+                </div>
+
+                <div id="phaseResults" class="phase-results"></div>
+
+                <div id="activityLog" class="activity-log" style="display: none;"></div>
+
+                <div id="summary" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tabName === 'diagram') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('diagram-tab').classList.add('active');
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('stress-tab').classList.add('active');
+            }
+        }
+
         async function renderDiagram() {
             const script = document.getElementById('script').value;
             const result = document.getElementById('result');
@@ -47,6 +407,374 @@ C -> D</textarea>
                 }
             } catch (error) {
                 result.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Live stats tracking
+        let liveStats = {
+            total: 0,
+            success: 0,
+            failed: 0,
+            startTime: 0
+        };
+
+        let updateInterval = null;
+
+        function updateLiveMetrics() {
+            const elapsed = (Date.now() - liveStats.startTime) / 1000;
+            const rate = liveStats.total / elapsed;
+
+            document.getElementById('liveTotal').textContent = liveStats.total;
+            document.getElementById('liveSuccess').textContent = liveStats.success;
+            document.getElementById('liveFailed').textContent = liveStats.failed;
+            document.getElementById('liveRate').textContent = rate.toFixed(1);
+            document.getElementById('liveElapsed').textContent = elapsed.toFixed(1) + 's';
+        }
+
+        function addActivityLog(message) {
+            const log = document.getElementById('activityLog');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'activity-log-entry';
+            entry.innerHTML = `<span class="activity-log-timestamp">[${time}]</span>${message}`;
+            log.insertBefore(entry, log.firstChild);
+
+            // Keep only last 20 entries
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function animateValue(element) {
+            element.classList.add('updated');
+            setTimeout(() => element.classList.remove('updated'), 300);
+        }
+
+        // Helper function to run requests with concurrency limit and live updates
+        async function runWithConcurrencyLive(requests, concurrency, phaseIndex, phaseTotal, onProgress) {
+            const results = [];
+            const executing = [];
+            let completed = 0;
+
+            for (const request of requests) {
+                const promise = request().then(result => {
+                    executing.splice(executing.indexOf(promise), 1);
+
+                    // Update live stats
+                    liveStats.total++;
+                    if (result) {
+                        liveStats.success++;
+                    } else {
+                        liveStats.failed++;
+                    }
+
+                    completed++;
+                    if (onProgress) {
+                        onProgress(completed, result);
+                    }
+
+                    return result;
+                });
+
+                results.push(promise);
+                executing.push(promise);
+
+                if (executing.length >= concurrency) {
+                    await Promise.race(executing);
+                }
+            }
+
+            return Promise.all(results);
+        }
+
+        async function runStressTest() {
+            const button = document.getElementById('runStressTest');
+            const status = document.getElementById('stressStatus');
+            const phaseResults = document.getElementById('phaseResults');
+            const summary = document.getElementById('summary');
+
+            button.disabled = true;
+            status.style.display = 'block';
+            status.className = 'stress-status running';
+            status.textContent = 'Running stress test...';
+            phaseResults.innerHTML = '';
+            summary.style.display = 'none';
+
+            // Show and reset live metrics
+            document.getElementById('liveMetrics').style.display = 'grid';
+            document.getElementById('activityLog').style.display = 'block';
+            document.getElementById('activityLog').innerHTML = '';
+
+            // Reset live stats
+            liveStats = {
+                total: 0,
+                success: 0,
+                failed: 0,
+                startTime: Date.now()
+            };
+
+            // Start live metric updates
+            updateInterval = setInterval(updateLiveMetrics, 100);
+
+            addActivityLog('Starting comprehensive stress test...');
+
+            const testStartTime = Date.now();
+
+            // Test diagrams
+            const simpleDiagram = "A -> B -> C";
+            const mediumDiagram = `frontend: {shape: hexagon}
+backend: {shape: cylinder}
+cache: {shape: stored_data}
+frontend -> backend
+backend -> cache`;
+
+            const complexDiagram = `direction: right
+
+system: {
+  web: {
+    lb: {shape: hexagon}
+    app1: {shape: rectangle}
+    app2: {shape: rectangle}
+    app3: {shape: rectangle}
+  }
+  data: {
+    primary: {shape: cylinder}
+    replica1: {shape: cylinder}
+    replica2: {shape: cylinder}
+    cache: {shape: stored_data}
+  }
+  queue: {shape: queue}
+}
+
+user: {shape: person}
+admin: {shape: person}
+
+user -> system.web.lb
+admin -> system.web.lb
+system.web.lb -> system.web.app1
+system.web.lb -> system.web.app2
+system.web.lb -> system.web.app3
+system.web.app1 -> system.data.primary
+system.web.app2 -> system.data.primary
+system.web.app3 -> system.data.primary
+system.web.app1 -> system.data.cache
+system.web.app2 -> system.data.cache
+system.web.app3 -> system.data.cache
+system.data.primary -> system.data.replica1
+system.data.primary -> system.data.replica2
+system.web.app1 -> system.queue
+system.web.app2 -> system.queue
+system.web.app3 -> system.queue`;
+
+            // Define phases
+            const phases = [
+                { name: 'Phase 1: Warm up (simple)', diagram: simpleDiagram, count: 25 },
+                { name: 'Phase 2: Moderate load (medium)', diagram: mediumDiagram, count: 100 },
+                { name: 'Phase 3: Heavy load (complex)', diagram: complexDiagram, count: 200 },
+                { name: 'Phase 4: Sustained load (10 waves of 50)', diagram: mediumDiagram, count: 500, waves: 10 }
+            ];
+
+            const allResults = [];
+
+            try {
+                for (let phaseIndex = 0; phaseIndex < phases.length; phaseIndex++) {
+                    const phase = phases[phaseIndex];
+
+                    // Create phase card
+                    const card = document.createElement('div');
+                    card.className = 'phase-card running';
+                    card.id = `phase-${phaseIndex}`;
+                    card.innerHTML = `
+                        <div class="phase-header">
+                            <span class="phase-name">${phase.name}</span>
+                            <span class="phase-badge running">Running...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="phase-stats">
+                            <div class="stat">
+                                <div class="stat-value" id="phase-${phaseIndex}-progress">0/${phase.count}</div>
+                                <div class="stat-label">Progress</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="phase-${phaseIndex}-success">0</div>
+                                <div class="stat-label">Successful</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="phase-${phaseIndex}-failed">0</div>
+                                <div class="stat-label">Failed</div>
+                            </div>
+                        </div>
+                    `;
+                    phaseResults.appendChild(card);
+
+                    status.textContent = `Running ${phase.name}...`;
+                    addActivityLog(`Starting ${phase.name} - ${phase.count} requests`);
+
+                    const phaseStart = Date.now();
+                    let phaseSuccess = 0;
+                    let phaseFailed = 0;
+
+                    // Progress callback
+                    const updatePhaseProgress = (completed, wasSuccessful) => {
+                        if (wasSuccessful) phaseSuccess++;
+                        else phaseFailed++;
+
+                        const progress = (completed / phase.count) * 100;
+
+                        const progressEl = document.getElementById(`phase-${phaseIndex}-progress`);
+                        const successEl = document.getElementById(`phase-${phaseIndex}-success`);
+                        const failedEl = document.getElementById(`phase-${phaseIndex}-failed`);
+
+                        progressEl.textContent = `${completed}/${phase.count}`;
+                        successEl.textContent = phaseSuccess;
+                        failedEl.textContent = phaseFailed;
+
+                        animateValue(progressEl);
+                        animateValue(successEl);
+                        if (phaseFailed > 0) animateValue(failedEl);
+
+                        card.querySelector('.progress-fill').style.width = progress + '%';
+                    };
+
+                    // Create array of request functions
+                    const requests = [];
+                    for (let i = 0; i < phase.count; i++) {
+                        requests.push(() =>
+                            fetch('/render', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ script: phase.diagram })
+                            }).then(r => r.ok).catch(() => false)
+                        );
+                    }
+
+                    if (phase.waves) {
+                        // Sustained load with waves
+                        const waveSize = phase.count / phase.waves;
+                        for (let wave = 0; wave < phase.waves; wave++) {
+                            addActivityLog(`Wave ${wave + 1}/${phase.waves} starting (${waveSize} requests)`);
+                            const waveRequests = requests.slice(wave * waveSize, (wave + 1) * waveSize);
+                            await runWithConcurrencyLive(waveRequests, 15, phaseIndex, phase.count, updatePhaseProgress);
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                    } else {
+                        // Concurrent requests with live updates
+                        await runWithConcurrencyLive(requests, 15, phaseIndex, phase.count, updatePhaseProgress);
+                    }
+
+                    const phaseDuration = Date.now() - phaseStart;
+                    const successRate = (phaseSuccess * 100.0) / phase.count;
+
+                    allResults.push({
+                        name: phase.name,
+                        totalRequests: phase.count,
+                        success: phaseSuccess,
+                        failed: phaseFailed,
+                        duration: phaseDuration,
+                        successRate
+                    });
+
+                    addActivityLog(`Completed ${phase.name} - ${phaseSuccess}/${phase.count} successful (${successRate.toFixed(1)}%)`);
+
+                    // Update card with final results
+                    card.className = 'phase-card completed';
+                    card.innerHTML = `
+                        <div class="phase-header">
+                            <span class="phase-name">${phase.name}</span>
+                            <span class="phase-badge completed">✓ Completed</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%"></div>
+                        </div>
+                        <div class="phase-stats">
+                            <div class="stat">
+                                <div class="stat-value">${phaseSuccess}/${phase.count}</div>
+                                <div class="stat-label">Successful</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${successRate.toFixed(1)}%</div>
+                                <div class="stat-label">Success Rate</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${phaseDuration}ms</div>
+                                <div class="stat-label">Duration</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${(phaseDuration / phase.count).toFixed(1)}ms</div>
+                                <div class="stat-label">Avg Time</div>
+                            </div>
+                        </div>
+                    `;
+
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                // Calculate totals
+                const totalRequests = allResults.reduce((sum, r) => sum + r.totalRequests, 0);
+                const totalSuccess = allResults.reduce((sum, r) => sum + r.success, 0);
+                const totalFailed = allResults.reduce((sum, r) => sum + r.failed, 0);
+                const totalDuration = Date.now() - testStartTime;
+                const totalSuccessRate = (totalSuccess * 100.0) / totalRequests;
+                const rating = totalSuccessRate >= 95 ? 'EXCELLENT' :
+                              totalSuccessRate >= 85 ? 'GOOD' :
+                              totalSuccessRate >= 70 ? 'ACCEPTABLE' : 'POOR';
+
+                // Stop live metrics updates
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    updateInterval = null;
+                }
+
+                // Final metric update
+                updateLiveMetrics();
+
+                // Show summary
+                status.className = 'stress-status success';
+                status.textContent = `✓ Stress test completed successfully!`;
+                addActivityLog(`✓ Stress test complete! ${totalSuccess}/${totalRequests} successful (${totalSuccessRate.toFixed(1)}%) - Rating: ${rating}`);
+
+                summary.style.display = 'block';
+                summary.innerHTML = `
+                    <div class="summary-card">
+                        <div class="summary-title">Test Summary</div>
+                        <div class="summary-stats">
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalRequests}</div>
+                                <div class="summary-stat-label">Total Requests</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalSuccess}</div>
+                                <div class="summary-stat-label">Successful</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalFailed}</div>
+                                <div class="summary-stat-label">Failed</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalSuccessRate.toFixed(1)}%</div>
+                                <div class="summary-stat-label">Success Rate</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${(totalDuration / 1000).toFixed(1)}s</div>
+                                <div class="summary-stat-label">Total Time</div>
+                            </div>
+                        </div>
+                        <div class="rating">${rating}</div>
+                    </div>
+                `;
+
+            } catch (error) {
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    updateInterval = null;
+                }
+                status.className = 'stress-status error';
+                status.textContent = `Error: ${error.message}`;
+                addActivityLog(`✗ Error: ${error.message}`);
+            } finally {
+                button.disabled = false;
             }
         }
     </script>

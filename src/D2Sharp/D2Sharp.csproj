@@ -81,6 +81,24 @@
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
+    <!-- Copy worker executable to output directory (process isolation) -->
+    <!-- Worker should be built as part of solution build, so just copy it -->
+    <Target Name="CopyWorkerExecutable" AfterTargets="Build" Condition="'$(CI)' != 'true'">
+        <ItemGroup>
+            <WorkerFiles Include="$(MSBuildThisFileDirectory)..\D2Sharp.Worker\bin\$(Configuration)\net8.0\**\*.*"/>
+        </ItemGroup>
+        <Copy SourceFiles="@(WorkerFiles)" DestinationFolder="$(OutputPath)%(RecursiveDir)" SkipUnchangedFiles="true" Condition="'@(WorkerFiles)' != ''" />
+        <Warning Text="D2Sharp.Worker not found at $(MSBuildThisFileDirectory)..\D2Sharp.Worker\bin\$(Configuration)\net8.0\. Process isolation will not be available. Build the solution to include the worker." Condition="'@(WorkerFiles)' == ''" />
+    </Target>
+
+    <!-- Include worker files as content so they're copied to consuming projects -->
+    <ItemGroup>
+        <Content Include="$(OutputPath)D2Sharp.Worker*" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" Visible="false">
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0</PackagePath>
+        </Content>
+    </ItemGroup>
+
     <PropertyGroup>
         <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     </PropertyGroup>

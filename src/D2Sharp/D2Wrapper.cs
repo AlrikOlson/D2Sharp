@@ -197,7 +197,11 @@ public partial class D2Wrapper : IDisposable
         {
             try
             {
-                svgPtr = RenderDiagramInternal(script, optionsJson, out errorPtr);
+                // CRITICAL: Run P/Invoke on dedicated thread with large stack to avoid Go stack overflow
+                // Go's runtime uses deep recursion for complex diagrams which exceeds ThreadPool's ~1MB stack
+                var result = RunPInvokeOnDedicatedThread(script, optionsJson);
+                svgPtr = result.svgPtr;
+                errorPtr = result.errorPtr;
             }
             catch (DllNotFoundException ex)
             {
@@ -275,6 +279,43 @@ public partial class D2Wrapper : IDisposable
                 catch { /* Ignore cleanup errors */ }
             }
         }
+    }
+
+    /// <summary>
+    /// Runs the P/Invoke call on a dedicated thread with a larger stack (8MB) to avoid stack overflows.
+    /// This is critical because Go's runtime uses deep recursion for complex diagrams.
+    /// </summary>
+    private static (IntPtr svgPtr, IntPtr errorPtr) RunPInvokeOnDedicatedThread(string script, string optionsJson)
+    {
+        IntPtr svgPtr = IntPtr.Zero;
+        IntPtr errorPtr = IntPtr.Zero;
+        Exception? exception = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                // Set thread name to verify it's not a ThreadPool thread
+                Thread.CurrentThread.Name = $"D2Sharp-Render-{Environment.CurrentManagedThreadId}";
+                svgPtr = RenderDiagramInternal(script, optionsJson, out errorPtr);
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+        }, 8 * 1024 * 1024); // 8MB stack size - Go needs this for deep recursion
+
+        thread.Name = $"D2Sharp-Render-{thread.ManagedThreadId}";
+        thread.IsBackground = false; // Use foreground thread to ensure it completes
+        thread.Start();
+        thread.Join(); // Block until complete
+
+        if (exception != null)
+        {
+            throw exception;
+        }
+
+        return (svgPtr, errorPtr);
     }
 
     /// <summary>

@@ -13,6 +13,7 @@ import (
 	"io"
 	slog "log/slog"
 	"os"
+	"runtime"
 	"unsafe"
 
 	"oss.terrastruct.com/d2/d2graph"
@@ -46,6 +47,15 @@ func RenderDiagram(script *C.char, optionsJSON *C.char, errorPtr **C.char) *C.ch
 			*errorPtr = C.CString(fmt.Sprintf("Panic during rendering: %v", r))
 		}
 	}()
+
+	// Lock this goroutine to the current OS thread
+	// This ensures all work happens on the .NET-provided thread with large stack
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	// Force Go to use only 1 OS thread to prevent creating threads with small stacks
+	oldMaxProcs := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(oldMaxProcs)
 
 	goScript := C.GoString(script)
 	goOptionsJSON := C.GoString(optionsJSON)
