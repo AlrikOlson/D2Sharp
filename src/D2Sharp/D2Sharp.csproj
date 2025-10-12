@@ -93,10 +93,11 @@
 
     <!-- Include worker files as content so they're copied to consuming projects -->
     <ItemGroup>
-        <Content Include="$(OutputPath)D2Sharp.Worker*" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" Visible="false">
+        <None Include="$(OutputPath)D2Sharp.Worker*" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" Visible="false">
             <Pack>true</Pack>
             <PackagePath>lib/net8.0</PackagePath>
-        </Content>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </None>
     </ItemGroup>
 
     <PropertyGroup>
