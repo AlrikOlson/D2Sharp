@@ -45,7 +45,6 @@ Thumbs.db
 
 # IDEs and editors
 .idea/
-.vscode/
 *.iml
 *.ipr
 *.iws
