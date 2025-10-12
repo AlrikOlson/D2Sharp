@@ -9,6 +9,7 @@
             "program": "${workspaceFolder}/examples/D2Sharp.Web/bin/Debug/net8.0/D2Sharp.Web.dll",
             "args": [],
             "cwd": "${workspaceFolder}/examples/D2Sharp.Web",
+            "console": "integratedTerminal",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
