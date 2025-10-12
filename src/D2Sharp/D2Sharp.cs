@@ -126,19 +126,13 @@ public class D2Renderer : ID2Renderer
     }
 
     /// <summary>
-    /// Creates a D2Renderer instance using direct P/Invoke (no worker processes).
-    /// This is less robust than the default worker pool approach and may crash your application
-    /// on complex diagrams, but it uses less resources and has lower latency for simple diagrams.
-    /// Only use this if you understand the trade-offs.
+    /// Creates a D2Renderer instance using direct mode (no worker processes).
+    /// Best for CLI tools, scripts, or low-concurrency scenarios.
+    /// For web applications with concurrent requests, use the default constructor instead.
     /// </summary>
     /// <param name="options">Optional wrapper options for caching, telemetry, and concurrency control.</param>
     /// <param name="logger">Optional logger for diagnostic output.</param>
-    /// <returns>A new D2Renderer instance configured for direct P/Invoke rendering.</returns>
-    /// <remarks>
-    /// Warning: This approach directly invokes the native D2 library without process isolation.
-    /// Complex diagrams with deep nesting may cause stack overflow and crash your application.
-    /// Use worker pool mode (default) for production scenarios.
-    /// </remarks>
+    /// <returns>A new D2Renderer instance configured for direct rendering.</returns>
     public static D2Renderer CreateDirect(D2WrapperOptions? options = null, ILogger? logger = null)
     {
         ILogger<D2Wrapper>? wrapperLogger = null;
