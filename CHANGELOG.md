@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-10-11
+
+### Changed
+- **D2 Library Update**: Upgraded from D2 v0.6.3 to v0.7.1
+  - Adds support for theme 303 (C4 PlantUML theme) and other new themes introduced in D2 v0.7.0
+  - Updated Go wrapper to use standard library `log/slog` instead of `cdr.dev/slog` for compatibility with D2 v0.7.x
+  - Minimum Go version updated to 1.24 (required by D2 v0.7.1)
+
+### Added
+- New test case for theme 303 (C4 PlantUML theme) to verify compatibility with new D2 themes
+
+### Fixed
+- **Theme 303 Support**: Resolved "theme 303 not found" error by upgrading to D2 v0.7.1, which includes the C4 theme
+
 ## [0.3.1] - 2025-10-04
 
 ### Changed
@@ -284,7 +298,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0
 [0.3.0-alpha.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0-alpha.1

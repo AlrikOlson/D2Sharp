@@ -26,6 +26,27 @@ public class RenderOptionsTests
     }
 
     [Fact]
+    public void RenderDiagram_WithC4Theme_ReturnsSuccessResult()
+    {
+        // Arrange
+        var wrapper = new D2Wrapper();
+        var script = "A -> B -> C";
+        var options = new RenderOptions
+        {
+            ThemeId = 303  // C4 PlantUML theme (requires D2 v0.7.0+)
+        };
+
+        // Act
+        var result = wrapper.RenderDiagram(script, options);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.IsSuccess, $"Expected success but got error: {result.Error?.Message}");
+        Assert.NotNull(result.Svg);
+        Assert.Contains("<svg", result.Svg);
+    }
+
+    [Fact]
     public void RenderDiagram_WithSketchMode_ReturnsSuccessResult()
     {
         // Arrange

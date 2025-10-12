@@ -10,10 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	slog "log/slog"
 	"os"
 	"unsafe"
-
-	"cdr.dev/slog"
 
 	"oss.terrastruct.com/d2/d2graph"
 	"oss.terrastruct.com/d2/d2layouts/d2dagrelayout"
@@ -58,7 +58,8 @@ func RenderDiagram(script *C.char, optionsJSON *C.char, errorPtr **C.char) *C.ch
 		return nil
 	}
 
-	logger := slog.Logger{}
+	// Create a logger that discards output (quiet mode for library use)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	// Determine layout engine
 	layoutResolver := func(engine string) (d2graph.LayoutGraph, error) {
