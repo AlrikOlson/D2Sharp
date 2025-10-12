@@ -11,9 +11,10 @@ using System.Text.RegularExpressions;
 namespace D2Sharp;
 
 /// <summary>
-/// Provides functionality to render D2 diagrams as SVG.
+/// Provides functionality to render D2 diagrams as SVG using direct P/Invoke.
+/// For production use, consider using the D2Sharp class which provides process isolation.
 /// </summary>
-public partial class D2Wrapper : IDisposable
+public partial class D2Wrapper : ID2Renderer
 {
     private readonly ILogger<D2Wrapper> _logger;
     private readonly D2WrapperOptions _options;

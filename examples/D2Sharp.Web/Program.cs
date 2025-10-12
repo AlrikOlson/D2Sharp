@@ -1,4 +1,5 @@
 using D2Sharp;
+using D2Sharp.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
@@ -6,15 +7,9 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Use D2WrapperProcessPool for process isolation with concurrent workers
-// Pool of 15 workers allows parallel processing and faster recovery
-// Includes automatic health monitoring and circuit breaker for resilience
-builder.Services.AddSingleton(sp =>
-{
-    var logger = sp.GetRequiredService<ILogger<D2WrapperProcessPool>>();
-    return new D2WrapperProcessPool(poolSize: 15, logger);
-});
+// Add D2Sharp rendering services with 15 worker processes
+// Simple, zero-config API that "just works" with automatic process isolation
+builder.Services.AddD2Sharp(options => options.WorkerCount = 15);
 
 // Add health checks
 builder.Services.AddHealthChecks();
@@ -139,7 +134,7 @@ app.MapHealthChecks("/health").WithTags("Health");
 app.MapHealthChecks("/health/ready").WithTags("Health");
 app.MapHealthChecks("/health/live").WithTags("Health");
 
-app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest request, D2WrapperProcessPool workerPool, CancellationToken cancellationToken) =>
+app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest request, D2Renderer renderer, CancellationToken cancellationToken) =>
 {
     // Validate input
     if (string.IsNullOrEmpty(request.Script))
@@ -158,12 +153,12 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
 
     try
     {
-        // Use async rendering with worker pool (process isolation + concurrency)
+        // Use async rendering with automatic process isolation
         // Create a timeout cancellation token source
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
-        var result = await workerPool.RenderDiagramAsync(
+        var result = await renderer.RenderDiagramAsync(
             request.Script,
             options: null,
             timeoutCts.Token);
@@ -212,7 +207,7 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
 .WithSummary("Render a D2 diagram")
 .WithDescription("Accepts a D2 diagram script and returns the rendered SVG. Rendering has a configurable timeout (default: 30 seconds).");
 
-app.MapPost("/stress-test", async (D2WrapperProcessPool workerPool, ILogger<Program> logger, CancellationToken cancellationToken) =>
+app.MapPost("/stress-test", async (D2Renderer renderer, ILogger<Program> logger, CancellationToken cancellationToken) =>
 {
     var sw = System.Diagnostics.Stopwatch.StartNew();
     var results = new List<PhaseResult>();
@@ -269,15 +264,15 @@ system.web.app3 -> system.queue
 ";
 
     // Phase 1: Warm up
-    results.Add(await RunTestPhase("Phase 1: Warm up (simple)", simpleDiagram, 25, workerPool, logger, cancellationToken));
+    results.Add(await RunTestPhase("Phase 1: Warm up (simple)", simpleDiagram, 25, renderer, logger, cancellationToken));
     await Task.Delay(500, cancellationToken);
 
     // Phase 2: Moderate load
-    results.Add(await RunTestPhase("Phase 2: Moderate load (medium)", mediumDiagram, 100, workerPool, logger, cancellationToken));
+    results.Add(await RunTestPhase("Phase 2: Moderate load (medium)", mediumDiagram, 100, renderer, logger, cancellationToken));
     await Task.Delay(500, cancellationToken);
 
     // Phase 3: Heavy concurrent load
-    results.Add(await RunTestPhase("Phase 3: Heavy load (complex)", complexDiagram, 200, workerPool, logger, cancellationToken));
+    results.Add(await RunTestPhase("Phase 3: Heavy load (complex)", complexDiagram, 200, renderer, logger, cancellationToken));
     await Task.Delay(1000, cancellationToken);
 
     // Phase 4: Sustained load (10 waves of 50 requests)
@@ -290,7 +285,7 @@ system.web.app3 -> system.queue
         var waveTasks = new List<Task<RenderResult>>();
         for (int i = 0; i < 50; i++)
         {
-            waveTasks.Add(workerPool.RenderDiagramAsync(mediumDiagram, null, cancellationToken));
+            waveTasks.Add(renderer.RenderDiagramAsync(mediumDiagram, null, cancellationToken));
         }
 
         var waveResults = await Task.WhenAll(waveTasks);
@@ -344,7 +339,7 @@ system.web.app3 -> system.queue
 
 app.Run();
 
-async Task<PhaseResult> RunTestPhase(string name, string diagram, int count, D2WrapperProcessPool pool, ILogger logger, CancellationToken cancellationToken)
+async Task<PhaseResult> RunTestPhase(string name, string diagram, int count, D2Renderer renderer, ILogger logger, CancellationToken cancellationToken)
 {
     logger.LogInformation("Starting {Phase} ({Count} concurrent requests)", name, count);
 
@@ -353,7 +348,7 @@ async Task<PhaseResult> RunTestPhase(string name, string diagram, int count, D2W
 
     for (int i = 0; i < count; i++)
     {
-        tasks.Add(pool.RenderDiagramAsync(diagram, null, cancellationToken));
+        tasks.Add(renderer.RenderDiagramAsync(diagram, null, cancellationToken));
     }
 
     var phaseResults = await Task.WhenAll(tasks);

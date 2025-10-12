@@ -21,7 +21,7 @@ namespace D2Sharp;
 /// <example>
 /// Simple usage (recommended):
 /// <code>
-/// using var renderer = new D2Sharp();
+/// using var renderer = new D2Renderer();
 /// var result = await renderer.RenderDiagramAsync("A -> B -> C");
 /// if (result.IsSuccess)
 /// {
@@ -31,42 +31,42 @@ namespace D2Sharp;
 ///
 /// Custom worker count:
 /// <code>
-/// using var renderer = new D2Sharp(workerCount: 10);
+/// using var renderer = new D2Renderer(workerCount: 10);
 /// var result = await renderer.RenderDiagramAsync(script);
 /// </code>
 ///
 /// Factory methods for advanced control:
 /// <code>
 /// // Use worker pool with custom size
-/// using var renderer = D2Sharp.CreateWithPool(workerCount: 15);
+/// using var renderer = D2Renderer.CreateWithPool(workerCount: 15);
 ///
 /// // Use direct P/Invoke (less robust, but no worker processes)
-/// using var renderer = D2Sharp.CreateDirect();
+/// using var renderer = D2Renderer.CreateDirect();
 /// </code>
 /// </example>
 /// </remarks>
-public class D2Sharp : ID2Renderer
+public class D2Renderer : ID2Renderer
 {
     private readonly ID2Renderer _implementation;
     private readonly bool _ownsImplementation;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="D2Sharp"/> class with default worker pool (3 workers).
+    /// Initializes a new instance of the <see cref="D2Renderer"/> class with default worker pool (3 workers).
     /// This is the recommended constructor for most use cases.
     /// </summary>
     /// <param name="logger">Optional logger for diagnostic output.</param>
-    public D2Sharp(ILogger<D2Sharp>? logger = null)
+    public D2Renderer(ILogger<D2Renderer>? logger = null)
         : this(3, logger)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="D2Sharp"/> class with a custom number of workers.
+    /// Initializes a new instance of the <see cref="D2Renderer"/> class with a custom number of workers.
     /// </summary>
     /// <param name="workerCount">Number of worker processes to use. Recommended: 3-15 depending on load.</param>
     /// <param name="logger">Optional logger for diagnostic output.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when workerCount is less than 1.</exception>
-    public D2Sharp(int workerCount, ILogger<D2Sharp>? logger = null)
+    public D2Renderer(int workerCount, ILogger<D2Renderer>? logger = null)
     {
         if (workerCount < 1)
             throw new ArgumentOutOfRangeException(nameof(workerCount), "Worker count must be at least 1");
@@ -92,21 +92,21 @@ public class D2Sharp : ID2Renderer
     /// </summary>
     /// <param name="implementation">The rendering implementation to use.</param>
     /// <param name="ownsImplementation">Whether this instance owns and should dispose the implementation.</param>
-    private D2Sharp(ID2Renderer implementation, bool ownsImplementation = false)
+    private D2Renderer(ID2Renderer implementation, bool ownsImplementation = false)
     {
         _implementation = implementation ?? throw new ArgumentNullException(nameof(implementation));
         _ownsImplementation = ownsImplementation;
     }
 
     /// <summary>
-    /// Creates a D2Sharp instance using a worker process pool with a custom number of workers.
+    /// Creates a D2Renderer instance using a worker process pool with a custom number of workers.
     /// This is the same as using the constructor but provides a more explicit API.
     /// </summary>
     /// <param name="workerCount">Number of worker processes to use. Default: 10.</param>
     /// <param name="logger">Optional logger for diagnostic output.</param>
-    /// <returns>A new D2Sharp instance configured with a worker pool.</returns>
+    /// <returns>A new D2Renderer instance configured with a worker pool.</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when workerCount is less than 1.</exception>
-    public static D2Sharp CreateWithPool(int workerCount = 10, ILogger? logger = null)
+    public static D2Renderer CreateWithPool(int workerCount = 10, ILogger? logger = null)
     {
         if (workerCount < 1)
             throw new ArgumentOutOfRangeException(nameof(workerCount), "Worker count must be at least 1");
@@ -122,24 +122,24 @@ public class D2Sharp : ID2Renderer
         }
 
         var pool = new D2WrapperProcessPool(workerCount, poolLogger);
-        return new D2Sharp(pool, ownsImplementation: true);
+        return new D2Renderer(pool, ownsImplementation: true);
     }
 
     /// <summary>
-    /// Creates a D2Sharp instance using direct P/Invoke (no worker processes).
+    /// Creates a D2Renderer instance using direct P/Invoke (no worker processes).
     /// This is less robust than the default worker pool approach and may crash your application
     /// on complex diagrams, but it uses less resources and has lower latency for simple diagrams.
     /// Only use this if you understand the trade-offs.
     /// </summary>
     /// <param name="options">Optional wrapper options for caching, telemetry, and concurrency control.</param>
     /// <param name="logger">Optional logger for diagnostic output.</param>
-    /// <returns>A new D2Sharp instance configured for direct P/Invoke rendering.</returns>
+    /// <returns>A new D2Renderer instance configured for direct P/Invoke rendering.</returns>
     /// <remarks>
     /// Warning: This approach directly invokes the native D2 library without process isolation.
     /// Complex diagrams with deep nesting may cause stack overflow and crash your application.
     /// Use worker pool mode (default) for production scenarios.
     /// </remarks>
-    public static D2Sharp CreateDirect(D2WrapperOptions? options = null, ILogger? logger = null)
+    public static D2Renderer CreateDirect(D2WrapperOptions? options = null, ILogger? logger = null)
     {
         ILogger<D2Wrapper>? wrapperLogger = null;
         if (logger != null)
@@ -152,7 +152,7 @@ public class D2Sharp : ID2Renderer
         }
 
         var wrapper = new D2Wrapper(options, wrapperLogger);
-        return new D2Sharp(wrapper, ownsImplementation: true);
+        return new D2Renderer(wrapper, ownsImplementation: true);
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public class D2Sharp : ID2Renderer
     /// <param name="options">Optional rendering options for customization.</param>
     /// <returns>A <see cref="RenderResult"/> containing either the SVG output or error information.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the renderer has been disposed.</exception>
     public RenderResult RenderDiagram(string script, RenderOptions? options = null)
     {
         return _implementation.RenderDiagram(script, options);
@@ -176,7 +176,7 @@ public class D2Sharp : ID2Renderer
     /// <param name="cancellationToken">Optional cancellation token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a <see cref="RenderResult"/>.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="script"/> is null.</exception>
-    /// <exception cref="ObjectDisposedException">Thrown when the wrapper has been disposed.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the renderer has been disposed.</exception>
     /// <exception cref="OperationCanceledException">Thrown when the operation is cancelled via the cancellation token.</exception>
     public Task<RenderResult> RenderDiagramAsync(string script, RenderOptions? options = null, CancellationToken cancellationToken = default)
     {
@@ -184,7 +184,7 @@ public class D2Sharp : ID2Renderer
     }
 
     /// <summary>
-    /// Releases all resources used by the <see cref="D2Sharp"/> instance.
+    /// Releases all resources used by the <see cref="D2Renderer"/> instance.
     /// </summary>
     public void Dispose()
     {
