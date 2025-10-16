@@ -104,6 +104,9 @@ func RenderDiagram(script *C.char, optionsJSON *C.char, errorPtr **C.char) *C.ch
 	if opts.Sketch != nil {
 		renderOpts.Sketch = opts.Sketch
 	}
+	if opts.Scale != nil {
+		renderOpts.Scale = opts.Scale
+	}
 
 	compileOpts := &d2lib.CompileOptions{
 		LayoutResolver: layoutResolver,

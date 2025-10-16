@@ -158,9 +158,25 @@ app.MapPost("/render", async (HttpContext context, [FromBody] DiagramRequest req
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
+        // Map request properties to RenderOptions
+        RenderOptions? options = null;
+        if (request.Layout.HasValue || request.ThemeId.HasValue || request.Sketch.HasValue ||
+            request.Pad.HasValue || request.Scale.HasValue || request.Center.HasValue)
+        {
+            options = new RenderOptions
+            {
+                Layout = request.Layout.HasValue ? (LayoutEngine)request.Layout.Value : null,
+                ThemeId = request.ThemeId,
+                Sketch = request.Sketch,
+                Pad = request.Pad,
+                Scale = request.Scale,
+                Center = request.Center
+            };
+        }
+
         var result = await renderer.RenderDiagramAsync(
             request.Script,
-            options: null,
+            options,
             timeoutCts.Token);
 
         if (result.IsSuccess)
@@ -373,6 +389,12 @@ async Task<PhaseResult> RunTestPhase(string name, string diagram, int count, D2R
 public class DiagramRequest
 {
     public string Script { get; set; } = "";
+    public int? Layout { get; set; }      // 0=Dagre, 1=Elk
+    public int? ThemeId { get; set; }
+    public bool? Sketch { get; set; }
+    public int? Pad { get; set; }
+    public double? Scale { get; set; }
+    public bool? Center { get; set; }
 }
 
 public class PhaseResult
