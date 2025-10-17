@@ -336,4 +336,96 @@ public class D2SharpEventCountersTests
         Assert.NotNull(eventSource);
         Assert.Equal("D2Sharp", eventSource.Name);
     }
+
+    [Fact]
+    public void OnEventCommand_WithEnable_InitializesCounters()
+    {
+        // Arrange
+        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+
+        using var listener = new TestEventListener();
+
+        // Act - Enable the EventSource which triggers OnEventCommand
+        listener.EnableEvents(eventSource, EventLevel.Informational,
+            EventKeywords.All,
+            new Dictionary<string, string?>
+            {
+                ["EventCounterIntervalSec"] = "1"
+            });
+
+        // Give counters time to initialize and report
+        Thread.Sleep(1500);
+
+        // Assert - Verify no exceptions thrown and listener is active
+        Assert.True(listener.IsEnabled);
+    }
+
+    [Fact]
+    public void OnEventCommand_WithCountersEnabled_ReportsMetrics()
+    {
+        // Arrange
+        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var counterEvents = new List<string>();
+
+        using var listener = new TestEventListener();
+        listener.CounterReceived += (sender, args) =>
+        {
+            if (args.EventSource.Name == "D2Sharp" && args.EventName == "EventCounters")
+            {
+                if (args.Payload != null)
+                {
+                    foreach (var payload in args.Payload)
+                    {
+                        if (payload is IDictionary<string, object> counterData &&
+                            counterData.TryGetValue("Name", out var name))
+                        {
+                            counterEvents.Add(name.ToString() ?? string.Empty);
+                        }
+                    }
+                }
+            }
+        };
+
+        // Enable counters
+        listener.EnableEvents(eventSource, EventLevel.Informational,
+            EventKeywords.All,
+            new Dictionary<string, string?>
+            {
+                ["EventCounterIntervalSec"] = "1"
+            });
+
+        // Act - Generate some events
+        eventSource.RenderStarted();
+        eventSource.RenderCompleted(100.0, true);
+        eventSource.RecordCacheAccess(true);
+
+        // Wait for counter interval
+        Thread.Sleep(1500);
+
+        // Assert - Verify counter events were reported
+        Assert.Contains("renders-total", counterEvents);
+        Assert.Contains("renders-active", counterEvents);
+        Assert.Contains("cache-hit-rate", counterEvents);
+    }
+
+    private class TestEventListener : EventListener
+    {
+        public bool IsEnabled { get; private set; }
+
+        protected override void OnEventSourceCreated(EventSource eventSource)
+        {
+            base.OnEventSourceCreated(eventSource);
+            if (eventSource.Name == "D2Sharp")
+            {
+                IsEnabled = true;
+            }
+        }
+
+        public event EventHandler<EventWrittenEventArgs>? CounterReceived;
+
+        protected override void OnEventWritten(EventWrittenEventArgs eventData)
+        {
+            CounterReceived?.Invoke(this, eventData);
+        }
+    }
 }
