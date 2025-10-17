@@ -10,6 +10,14 @@
 
     <!-- Integration test settings -->
     <TestCategory>Integration</TestCategory>
+
+    <!-- Code Coverage Settings -->
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura,json,lcov,opencover</CoverletOutputFormat>
+    <CoverletOutput>./coverage/</CoverletOutput>
+    <ExcludeByFile>**/GlobalUsings.cs</ExcludeByFile>
+    <Exclude>[D2Sharp.Web]*,[D2Sharp.Benchmarks]*,[D2Sharp.Worker]*</Exclude>
+    <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +26,14 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="6.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
