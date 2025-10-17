@@ -1,3 +1,4 @@
+using D2Sharp.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -92,7 +93,7 @@ public class D2Renderer : ID2Renderer
     /// </summary>
     /// <param name="implementation">The rendering implementation to use.</param>
     /// <param name="ownsImplementation">Whether this instance owns and should dispose the implementation.</param>
-    private D2Renderer(ID2Renderer implementation, bool ownsImplementation = false)
+    internal D2Renderer(ID2Renderer implementation, bool ownsImplementation = false)
     {
         _implementation = implementation ?? throw new ArgumentNullException(nameof(implementation));
         _ownsImplementation = ownsImplementation;

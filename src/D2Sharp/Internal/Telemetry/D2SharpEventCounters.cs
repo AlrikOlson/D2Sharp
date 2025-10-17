@@ -1,6 +1,6 @@
 using System.Diagnostics.Tracing;
 
-namespace D2Sharp.Telemetry;
+namespace D2Sharp.Internal.Telemetry;
 
 /// <summary>
 /// Provides real-time performance metrics for D2Sharp operations using EventCounters.

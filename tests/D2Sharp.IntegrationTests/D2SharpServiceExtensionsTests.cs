@@ -1,3 +1,4 @@
+using D2Sharp.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -103,9 +104,9 @@ public class D2SharpServiceExtensionsTests
         // Act
         services.AddD2SharpDirect(options =>
         {
-            options.EnableCaching = false;
-            options.EnableTelemetry = false;
-            options.EnableMetrics = false;
+            options.Caching.Enabled = false;
+            options.Telemetry.EnableTracing = false;
+            options.Telemetry.EnableMetrics = false;
         });
         var provider = services.BuildServiceProvider();
 
@@ -121,7 +122,7 @@ public class D2SharpServiceExtensionsTests
         var services = new ServiceCollection();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => services.AddD2Sharp(null!));
+        Assert.Throws<ArgumentNullException>(() => services.AddD2Sharp((Action<D2SharpOptions>)null!));
     }
 
     [Fact]

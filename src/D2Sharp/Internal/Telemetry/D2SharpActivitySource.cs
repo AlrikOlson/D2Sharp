@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace D2Sharp.Telemetry;
+namespace D2Sharp.Internal.Telemetry;
 
 /// <summary>
 /// Provides distributed tracing capabilities for D2Sharp operations using Activity/ActivitySource.

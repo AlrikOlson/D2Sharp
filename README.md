@@ -164,8 +164,17 @@ The default (3 workers) is optimal for most use cases.
 ### ASP.NET Core Integration
 
 ```csharp
-// In Program.cs
-builder.Services.AddD2Sharp();  // Registers as singleton with 10 workers
+// In Program.cs - Basic registration (uses 10 workers by default)
+builder.Services.AddD2Sharp();
+
+// With fluent configuration
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15))
+    .ConfigureCaching(cache => cache.Enabled = true)
+    .ConfigureTelemetry(telemetry => telemetry.EnableMetrics = true));
+
+// Or use direct mode for CLI tools (no process pool)
+builder.Services.AddD2Sharp(d2 => d2.UseDirect());
 
 // In your controller/endpoint
 public class DiagramController : ControllerBase
@@ -186,6 +195,56 @@ public class DiagramController : ControllerBase
             : BadRequest(result.Error);
     }
 }
+```
+
+### Configuration Options
+
+The fluent builder API provides several configuration options:
+
+#### Process Pool Configuration
+```csharp
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15)));  // Customize worker count
+```
+
+#### Caching Configuration
+```csharp
+builder.Services.AddD2Sharp(d2 => d2
+    .ConfigureCaching(cache =>
+    {
+        cache.Enabled = true;
+        cache.MaxSize = 500;
+        cache.Expiration = TimeSpan.FromMinutes(30);
+    }));
+```
+
+#### Telemetry Configuration
+```csharp
+builder.Services.AddD2Sharp(d2 => d2
+    .ConfigureTelemetry(telemetry =>
+    {
+        telemetry.EnableTracing = true;
+        telemetry.EnableMetrics = true;
+        telemetry.EnableDiagnosticIds = true;
+    }));
+```
+
+#### Concurrency Limits (Direct Mode Only)
+```csharp
+builder.Services.AddD2Sharp(d2 => d2
+    .UseDirect()
+    .ConfigureConcurrency(concurrency =>
+    {
+        concurrency.MaxConcurrentRenders = 5;
+    }));
+```
+
+#### Combined Configuration
+```csharp
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(20))
+    .ConfigureCaching(cache => cache.Enabled = true)
+    .ConfigureTelemetry(telemetry => telemetry.EnableMetrics = true));
 ```
 
 ### Direct Mode (CLI Tools)

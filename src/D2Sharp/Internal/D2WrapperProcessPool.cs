@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -307,7 +308,11 @@ public class D2WrapperProcessPool : ID2Renderer
         private Process? _process;
         private StreamWriter? _stdin;
         private StreamReader? _stdout;
+        private StreamReader? _stderr;
         private int _restartCount;
+        private int _startupFailures;
+        private int _renderFailures;
+        private string? _lastError;
         private bool _disposed;
 
         public WorkerInstance(int id, string workerPath, ILogger logger)
@@ -343,12 +348,26 @@ public class D2WrapperProcessPool : ID2Renderer
             try
             {
                 _restartCount++;
-                _logger.LogInformation("Starting worker {WorkerId} (attempt {RestartCount})", Id, _restartCount);
+                _logger.LogInformation("Starting worker {WorkerId} (attempt {RestartCount}, startup failures: {StartupFailures}, render failures: {RenderFailures})",
+                    Id, _restartCount, _startupFailures, _renderFailures);
 
-                var startInfo = new ProcessStartInfo
+                // Platform-specific worker startup
+                var workerDir = Path.GetDirectoryName(_workerPath + ".dll") ?? Environment.CurrentDirectory;
+
+                // Log diagnostic information
+                _logger.LogDebug("Worker {WorkerId} directory: {WorkerDir}", Id, workerDir);
+                if (Directory.Exists(workerDir))
                 {
-                    FileName = "/bin/bash",
-                    Arguments = $"-c \"ulimit -s unlimited && exec dotnet '{_workerPath}.dll'\"",
+                    var soFiles = Directory.GetFiles(workerDir, "*.so");
+                    _logger.LogDebug("Worker {WorkerId} found {Count} .so files in directory: {Files}",
+                        Id, soFiles.Length, string.Join(", ", soFiles.Select(Path.GetFileName)));
+                }
+
+                ProcessStartInfo startInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = $"\"{_workerPath}.dll\"",
+                    WorkingDirectory = workerDir,
                     UseShellExecute = false,
                     RedirectStandardInput = true,
                     RedirectStandardOutput = true,
@@ -356,20 +375,66 @@ public class D2WrapperProcessPool : ID2Renderer
                     CreateNoWindow = true
                 };
 
+                // On Linux/macOS, prepend worker directory to LD_LIBRARY_PATH
+                // Note: When UseShellExecute=false, child process inherits parent's environment by default
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    var existingLdPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") ?? "";
+                    var newLdPath = string.IsNullOrEmpty(existingLdPath)
+                        ? workerDir
+                        : $"{workerDir}:{existingLdPath}";
+
+                    // Set DOTNET_ROOT to help with .NET runtime library resolution
+                    var dotnetRoot = Environment.GetEnvironmentVariable("DOTNET_ROOT");
+                    if (!string.IsNullOrEmpty(dotnetRoot))
+                    {
+                        startInfo.Environment["DOTNET_ROOT"] = dotnetRoot;
+                    }
+
+                    startInfo.Environment["LD_LIBRARY_PATH"] = newLdPath;
+                    _logger.LogInformation("Worker {WorkerId} starting in: {WorkDir}, LD_LIBRARY_PATH: {LdPath}",
+                        Id, workerDir, newLdPath);
+                }
+
                 _process = Process.Start(startInfo);
                 if (_process == null)
                 {
-                    throw new InvalidOperationException($"Failed to start worker {Id}");
+                    _startupFailures++;
+                    throw new InvalidOperationException($"Failed to start worker {Id}: Process.Start returned null");
                 }
 
                 _stdin = _process.StandardInput;
                 _stdout = _process.StandardOutput;
+                _stderr = _process.StandardError;
 
-                _logger.LogInformation("Worker {WorkerId} started with PID {ProcessId}", Id, _process.Id);
+                // Start background stderr reader
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        while (_stderr != null && !_process.HasExited)
+                        {
+                            var line = await _stderr.ReadLineAsync();
+                            if (!string.IsNullOrEmpty(line))
+                            {
+                                _logger.LogWarning("Worker {WorkerId} stderr: {StderrLine}", Id, line);
+                                _lastError = line;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Worker {WorkerId} stderr reader terminated", Id);
+                    }
+                });
+
+                _logger.LogInformation("Worker {WorkerId} started with PID {ProcessId} on {Platform}",
+                    Id, _process.Id, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows" : "Unix");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to start worker {WorkerId}", Id);
+                _startupFailures++;
+                _logger.LogError(ex, "Failed to start worker {WorkerId} (total startup failures: {StartupFailures})", Id, _startupFailures);
                 HasCrashed = true;
                 throw;
             }
@@ -386,8 +451,17 @@ public class D2WrapperProcessPool : ID2Renderer
                         _process.Kill();
                         _process.WaitForExit(1000);
                     }
+
+                    var exitCode = _process.HasExited ? _process.ExitCode : -1;
+                    if (exitCode != 0)
+                    {
+                        _logger.LogWarning("Worker {WorkerId} terminated with exit code {ExitCode}", Id, exitCode);
+                    }
                 }
-                catch { /* Ignore */ }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Error stopping worker {WorkerId}", Id);
+                }
 
                 _process.Dispose();
                 _process = null;
@@ -395,6 +469,7 @@ public class D2WrapperProcessPool : ID2Renderer
 
             _stdin = null;
             _stdout = null;
+            _stderr = null;
         }
 
         public async Task<RenderResult> RenderAsync(string script, RenderOptions? options, CancellationToken cancellationToken)
@@ -405,7 +480,8 @@ public class D2WrapperProcessPool : ID2Renderer
                 // Check if process is alive
                 if (_process == null || _process.HasExited)
                 {
-                    _logger.LogWarning("Worker {WorkerId} died, restarting...", Id);
+                    var exitCode = _process?.ExitCode ?? -1;
+                    _logger.LogWarning("Worker {WorkerId} died with exit code {ExitCode}, restarting...", Id, exitCode);
                     Stop();
                     Start();
                 }
@@ -417,38 +493,88 @@ public class D2WrapperProcessPool : ID2Renderer
                 await _stdin!.WriteLineAsync(requestJson);
                 await _stdin.FlushAsync();
 
-                // Read response with timeout (matches render timeout)
-                var readTask = _stdout!.ReadLineAsync();
-                var timeoutTask = Task.Delay(35000, cancellationToken); // 35 seconds (slightly more than 30s render timeout)
-                var completedTask = await Task.WhenAny(readTask, timeoutTask);
+                // Read response with proper timeout and cancellation
+                // Use 45-second timeout (30s render + 15s buffer)
+                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                timeoutCts.CancelAfter(TimeSpan.FromSeconds(45));
 
                 string? responseJson = null;
-                if (completedTask == readTask)
+                bool timedOut = false;
+
+                try
                 {
-                    responseJson = await readTask;
+                    // Use cancellation token so the read operation is actually cancelled on timeout
+                    responseJson = await _stdout!.ReadLineAsync(timeoutCts.Token);
+                }
+                catch (OperationCanceledException) when (timeoutCts.Token.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    // Timeout occurred (not user cancellation)
+                    timedOut = true;
                 }
 
-                if (string.IsNullOrEmpty(responseJson))
+                // Handle timeout
+                if (timedOut)
                 {
-                    _logger.LogError("Worker {WorkerId} returned empty response or timed out", Id);
+                    _renderFailures++;
+                    _logger.LogError("Worker {WorkerId} render timed out after 45 seconds (process alive: {ProcessAlive}, render failures: {RenderFailures})",
+                        Id, _process?.HasExited == false, _renderFailures);
+
                     HasCrashed = true;
+
+                    var errorMsg = $"Render operation timed out after 45 seconds (worker {Id})";
+                    if (!string.IsNullOrEmpty(_lastError))
+                    {
+                        errorMsg += $". Last worker error: {_lastError}";
+                    }
+
                     return new RenderResult
                     {
-                        Error = new D2Error { Message = "Worker crashed or timed out" }
+                        Error = new D2Error { Message = errorMsg }
+                    };
+                }
+
+                // Handle empty response (worker crashed/died)
+                if (string.IsNullOrEmpty(responseJson))
+                {
+                    _renderFailures++;
+                    var processAlive = _process?.HasExited == false;
+                    var exitCode = _process?.HasExited == true ? _process.ExitCode : (int?)null;
+
+                    _logger.LogError("Worker {WorkerId} returned empty response (process alive: {ProcessAlive}, exit code: {ExitCode}, render failures: {RenderFailures})",
+                        Id, processAlive, exitCode, _renderFailures);
+
+                    HasCrashed = true;
+
+                    var errorMsg = $"Worker process {Id} failed to respond";
+                    if (exitCode.HasValue)
+                    {
+                        errorMsg += $" (exited with code {exitCode})";
+                    }
+                    if (!string.IsNullOrEmpty(_lastError))
+                    {
+                        errorMsg += $". Last error: {_lastError}";
+                    }
+
+                    return new RenderResult
+                    {
+                        Error = new D2Error { Message = errorMsg }
                     };
                 }
 
                 var response = JsonSerializer.Deserialize<WorkerResponse>(responseJson);
                 if (response == null)
                 {
+                    _renderFailures++;
+                    _logger.LogError("Worker {WorkerId} returned invalid JSON: {ResponseJson}", Id, responseJson);
                     return new RenderResult
                     {
-                        Error = new D2Error { Message = "Invalid response from worker" }
+                        Error = new D2Error { Message = $"Worker {Id} returned invalid response format" }
                     };
                 }
 
                 if (response.Error != null)
                 {
+                    // This is a D2 compilation error, not a worker failure
                     return new RenderResult
                     {
                         Error = new D2Error
@@ -461,11 +587,25 @@ public class D2WrapperProcessPool : ID2Renderer
                     };
                 }
 
+                // Success - reset failure counter
+                if (_renderFailures > 0)
+                {
+                    _logger.LogInformation("Worker {WorkerId} successfully rendered after {RenderFailures} failures", Id, _renderFailures);
+                    _renderFailures = 0;
+                }
+
                 return new RenderResult { Svg = response.Svg };
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // User-requested cancellation, not a worker failure
+                _logger.LogInformation("Worker {WorkerId} render cancelled by user", Id);
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error communicating with worker {WorkerId}", Id);
+                _renderFailures++;
+                _logger.LogError(ex, "Error communicating with worker {WorkerId} (render failures: {RenderFailures})", Id, _renderFailures);
                 HasCrashed = true;
                 throw;
             }

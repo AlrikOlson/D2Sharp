@@ -2,17 +2,17 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using D2Sharp.Caching;
-using D2Sharp.Telemetry;
+using D2Sharp.Internal.Caching;
+using D2Sharp.Internal.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.RegularExpressions;
 
-namespace D2Sharp;
+namespace D2Sharp.Internal;
 
 /// <summary>
 /// Provides functionality to render D2 diagrams as SVG using direct P/Invoke.
-/// For production use, consider using the D2Sharp class which provides process isolation.
+/// For production use, consider using the D2Renderer class which provides process isolation.
 /// </summary>
 public partial class D2Wrapper : ID2Renderer
 {
@@ -548,86 +548,5 @@ public partial class D2Wrapper : ID2Renderer
 
             // Dispose unmanaged resources here if needed in the future
         }
-    }
-}
-
-/// <summary>
-/// Represents the result of a D2 diagram rendering operation.
-/// </summary>
-public record RenderResult
-{
-    /// <summary>
-    /// Gets the rendered SVG output. Null if rendering failed.
-    /// </summary>
-    public string? Svg { get; init; }
-
-    /// <summary>
-    /// Gets error information if rendering failed. Null if successful.
-    /// </summary>
-    public D2Error? Error { get; init; }
-
-    /// <summary>
-    /// Gets the diagnostic ID for this render operation. Useful for correlating logs and telemetry.
-    /// </summary>
-    public string? DiagnosticId { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether this result was served from cache.
-    /// </summary>
-    public bool FromCache { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the rendering was successful.
-    /// </summary>
-    public bool IsSuccess => Error == null;
-}
-
-/// <summary>
-/// Represents detailed error information from a failed D2 diagram rendering.
-/// </summary>
-public class D2Error
-{
-    /// <summary>
-    /// Gets the error message.
-    /// </summary>
-    public string Message { get; init; } = "";
-
-    /// <summary>
-    /// Gets the line number where the error occurred, if available.
-    /// </summary>
-    public int? LineNumber { get; init; }
-
-    /// <summary>
-    /// Gets the column number where the error occurred, if available.
-    /// </summary>
-    public int? Column { get; init; }
-
-    /// <summary>
-    /// Gets the content of the line where the error occurred, if available.
-    /// </summary>
-    public string? LineContent { get; init; }
-
-    /// <summary>
-    /// Gets the line content split into parts before, at, and after the error position for highlighting.
-    /// </summary>
-    /// <returns>A tuple containing the text before the error, the error character, and the text after the error.</returns>
-    public (string beforeError, string errorPart, string afterError) GetHighlightedLineParts()
-    {
-        if (string.IsNullOrEmpty(LineContent) || !Column.HasValue || Column.Value <= 0)
-        {
-            return (LineContent ?? "", "", "");
-        }
-
-        int highlightIndex = Column.Value - 1;
-        if (highlightIndex >= LineContent.Length)
-        {
-            highlightIndex = LineContent.Length - 1;
-        }
-
-        string beforeError = LineContent[..highlightIndex];
-        string errorPart = LineContent.Substring(highlightIndex, 1);
-        string afterError = highlightIndex + 1 < LineContent.Length ? LineContent[(highlightIndex + 1)..] : "";
-
-        return (beforeError, errorPart, afterError);
     }
 }

@@ -12,4 +12,9 @@
         <ProjectReference Include="../D2Sharp/D2Sharp.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Explicit reference to ensure transitive dependency is copied to output -->
+        <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0"/>
+    </ItemGroup>
+
 </Project>

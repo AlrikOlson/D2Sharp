@@ -1,4 +1,5 @@
 using D2Sharp;
+using D2Sharp.Builders;
 using D2Sharp.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -7,9 +8,11 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add D2Sharp rendering services with 15 worker processes
-// Simple, zero-config API that "just works" with automatic process isolation
-builder.Services.AddD2Sharp(options => options.WorkerCount = 15);
+// Add D2Sharp rendering services with fluent configuration API
+// Demonstrates process pool with 15 workers and caching enabled
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15))
+    .ConfigureCaching(cache => cache.Enabled = true));
 
 // Add health checks
 builder.Services.AddHealthChecks();

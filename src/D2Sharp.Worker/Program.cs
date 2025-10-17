@@ -1,3 +1,4 @@
+using D2Sharp.Internal;
 using System.Text.Json;
 using D2Sharp;
 

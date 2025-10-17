@@ -8,6 +8,12 @@
         <WasmNativeLib>d2wrapper</WasmNativeLib>
         <LangVersion>latest</LangVersion>
 
+        <!-- Expose internals to test projects and worker -->
+        <InternalsVisibleTo>D2Sharp.Tests</InternalsVisibleTo>
+        <InternalsVisibleTo>D2Sharp.IntegrationTests</InternalsVisibleTo>
+        <InternalsVisibleTo>D2Sharp.Worker</InternalsVisibleTo>
+        <InternalsVisibleTo>D2Sharp.Benchmarks</InternalsVisibleTo>
+
         <!-- Version information -->
         <VersionPrefix>0.3.2</VersionPrefix>
         <VersionSuffix></VersionSuffix>
@@ -76,18 +82,26 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\D2Sharp.Abstractions\D2Sharp.Abstractions.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0"/>
         <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2"/>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
     <!-- Copy worker executable to output directory (process isolation) -->
     <!-- Worker should be built as part of solution build, so just copy it -->
+    <!-- IMPORTANT: Worker runs as standalone process, so needs all dependencies even if consuming project has them in framework -->
     <Target Name="CopyWorkerExecutable" AfterTargets="Build" Condition="'$(CI)' != 'true'">
         <ItemGroup>
             <WorkerFiles Include="$(MSBuildThisFileDirectory)..\D2Sharp.Worker\bin\$(Configuration)\net8.0\**\*.*"/>
         </ItemGroup>
-        <Copy SourceFiles="@(WorkerFiles)" DestinationFolder="$(OutputPath)%(RecursiveDir)" SkipUnchangedFiles="true" Condition="'@(WorkerFiles)' != ''" />
+        <!-- Copy all worker files, forcing overwrite to ensure ASP.NET Core apps get framework dependencies -->
+        <Copy SourceFiles="@(WorkerFiles)" DestinationFolder="$(OutputPath)%(RecursiveDir)" OverwriteReadOnlyFiles="true" Condition="'@(WorkerFiles)' != ''" />
         <Warning Text="D2Sharp.Worker not found at $(MSBuildThisFileDirectory)..\D2Sharp.Worker\bin\$(Configuration)\net8.0\. Process isolation will not be available. Build the solution to include the worker." Condition="'@(WorkerFiles)' == ''" />
     </Target>
 

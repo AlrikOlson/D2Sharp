@@ -12,7 +12,7 @@ public class D2SharpActivitySourceTests
     public void SourceName_Constant_IsD2Sharp()
     {
         // Arrange & Act
-        var sourceName = D2Sharp.Telemetry.D2SharpActivitySource.SourceName;
+        var sourceName = D2Sharp.Internal.Telemetry.D2SharpActivitySource.SourceName;
 
         // Assert
         Assert.Equal("D2Sharp", sourceName);
@@ -22,7 +22,7 @@ public class D2SharpActivitySourceTests
     public void Version_Constant_HasValue()
     {
         // Arrange & Act
-        var version = D2Sharp.Telemetry.D2SharpActivitySource.Version;
+        var version = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Version;
 
         // Assert
         Assert.NotNull(version);
@@ -34,7 +34,7 @@ public class D2SharpActivitySourceTests
     public void Source_Instance_IsNotNull()
     {
         // Arrange & Act
-        var source = D2Sharp.Telemetry.D2SharpActivitySource.Source;
+        var source = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Source;
 
         // Assert
         Assert.NotNull(source);
@@ -44,27 +44,27 @@ public class D2SharpActivitySourceTests
     public void Source_Name_MatchesConstant()
     {
         // Arrange & Act
-        var source = D2Sharp.Telemetry.D2SharpActivitySource.Source;
+        var source = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Source;
 
         // Assert
-        Assert.Equal(D2Sharp.Telemetry.D2SharpActivitySource.SourceName, source.Name);
+        Assert.Equal(D2Sharp.Internal.Telemetry.D2SharpActivitySource.SourceName, source.Name);
     }
 
     [Fact]
     public void Source_Version_MatchesConstant()
     {
         // Arrange & Act
-        var source = D2Sharp.Telemetry.D2SharpActivitySource.Source;
+        var source = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Source;
 
         // Assert
-        Assert.Equal(D2Sharp.Telemetry.D2SharpActivitySource.Version, source.Version);
+        Assert.Equal(D2Sharp.Internal.Telemetry.D2SharpActivitySource.Version, source.Version);
     }
 
     [Fact]
     public void Tags_ScriptLength_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.ScriptLength;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ScriptLength;
 
         // Assert
         Assert.Equal("d2sharp.script.length", tag);
@@ -74,7 +74,7 @@ public class D2SharpActivitySourceTests
     public void Tags_LayoutEngine_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.LayoutEngine;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.LayoutEngine;
 
         // Assert
         Assert.Equal("d2sharp.layout.engine", tag);
@@ -84,7 +84,7 @@ public class D2SharpActivitySourceTests
     public void Tags_ThemeId_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.ThemeId;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ThemeId;
 
         // Assert
         Assert.Equal("d2sharp.theme.id", tag);
@@ -94,7 +94,7 @@ public class D2SharpActivitySourceTests
     public void Tags_SketchMode_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.SketchMode;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.SketchMode;
 
         // Assert
         Assert.Equal("d2sharp.sketch.enabled", tag);
@@ -104,7 +104,7 @@ public class D2SharpActivitySourceTests
     public void Tags_DiagnosticId_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.DiagnosticId;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.DiagnosticId;
 
         // Assert
         Assert.Equal("d2sharp.diagnostic.id", tag);
@@ -114,7 +114,7 @@ public class D2SharpActivitySourceTests
     public void Tags_CacheHit_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.CacheHit;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.CacheHit;
 
         // Assert
         Assert.Equal("d2sharp.cache.hit", tag);
@@ -124,7 +124,7 @@ public class D2SharpActivitySourceTests
     public void Tags_ResultStatus_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.ResultStatus;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ResultStatus;
 
         // Assert
         Assert.Equal("d2sharp.result.status", tag);
@@ -134,7 +134,7 @@ public class D2SharpActivitySourceTests
     public void Tags_ErrorType_HasValue()
     {
         // Arrange & Act
-        var tag = D2Sharp.Telemetry.D2SharpActivitySource.Tags.ErrorType;
+        var tag = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ErrorType;
 
         // Assert
         Assert.Equal("d2sharp.error.type", tag);
@@ -144,7 +144,7 @@ public class D2SharpActivitySourceTests
     public void Source_CanCreateActivity()
     {
         // Arrange
-        var source = D2Sharp.Telemetry.D2SharpActivitySource.Source;
+        var source = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Source;
 
         // Act - Create activity (may return null if no listener)
         using var activity = source.StartActivity("test-activity");
@@ -158,12 +158,12 @@ public class D2SharpActivitySourceTests
     public void Source_CanCreateActivityWithTags()
     {
         // Arrange
-        var source = D2Sharp.Telemetry.D2SharpActivitySource.Source;
+        var source = D2Sharp.Internal.Telemetry.D2SharpActivitySource.Source;
         var tags = new ActivityTagsCollection
         {
-            { D2Sharp.Telemetry.D2SharpActivitySource.Tags.ScriptLength, 100 },
-            { D2Sharp.Telemetry.D2SharpActivitySource.Tags.LayoutEngine, "dagre" },
-            { D2Sharp.Telemetry.D2SharpActivitySource.Tags.ThemeId, 1 }
+            { D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ScriptLength, 100 },
+            { D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.LayoutEngine, "dagre" },
+            { D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ThemeId, 1 }
         };
 
         // Act
@@ -179,14 +179,14 @@ public class D2SharpActivitySourceTests
         // Arrange
         var tags = new[]
         {
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ScriptLength,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.LayoutEngine,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ThemeId,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.SketchMode,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.DiagnosticId,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.CacheHit,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ResultStatus,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ErrorType
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ScriptLength,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.LayoutEngine,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ThemeId,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.SketchMode,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.DiagnosticId,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.CacheHit,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ResultStatus,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ErrorType
         };
 
         // Act
@@ -202,14 +202,14 @@ public class D2SharpActivitySourceTests
         // Arrange
         var tags = new[]
         {
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ScriptLength,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.LayoutEngine,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ThemeId,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.SketchMode,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.DiagnosticId,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.CacheHit,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ResultStatus,
-            D2Sharp.Telemetry.D2SharpActivitySource.Tags.ErrorType
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ScriptLength,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.LayoutEngine,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ThemeId,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.SketchMode,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.DiagnosticId,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.CacheHit,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ResultStatus,
+            D2Sharp.Internal.Telemetry.D2SharpActivitySource.Tags.ErrorType
         };
 
         // Act & Assert - All tags should start with "d2sharp."

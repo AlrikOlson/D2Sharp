@@ -4,6 +4,8 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Force copy all dependencies for worker process isolation -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,6 +14,9 @@
 
     <ItemGroup>
       <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
+      <!-- Explicit reference to ensure worker process dependencies are copied to output -->
+      <!-- ASP.NET Core framework provides this, but worker runs as standalone process -->
+      <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
     </ItemGroup>
 
 </Project>

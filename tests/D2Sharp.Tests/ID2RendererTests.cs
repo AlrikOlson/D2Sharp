@@ -1,3 +1,4 @@
+using D2Sharp.Internal;
 using Xunit;
 
 namespace D2Sharp.Tests;

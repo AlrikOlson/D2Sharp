@@ -43,8 +43,11 @@ if (result.IsSuccess)
 **ASP.NET Core Integration:**
 ```csharp
 builder.Services.AddD2Sharp();  // Register as singleton with 10 workers
-// Or customize:
-builder.Services.AddD2Sharp(options => options.WorkerCount = 15);
+
+// Or customize with fluent API:
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15))
+    .ConfigureCaching(cache => cache.MaxSize = 200));
 ```
 
 ### Core Components

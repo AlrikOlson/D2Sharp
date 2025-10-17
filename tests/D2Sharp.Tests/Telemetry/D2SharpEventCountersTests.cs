@@ -12,8 +12,8 @@ public class D2SharpEventCountersTests
     public void Instance_IsSingleton()
     {
         // Arrange & Act
-        var instance1 = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
-        var instance2 = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var instance1 = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
+        var instance2 = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Assert
         Assert.NotNull(instance1);
@@ -24,7 +24,7 @@ public class D2SharpEventCountersTests
     public void RenderStarted_IncrementsCounters()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act
         eventSource.RenderStarted();
@@ -37,7 +37,7 @@ public class D2SharpEventCountersTests
     public void RenderCompleted_WithSuccess_DecrementsActiveRenders()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         eventSource.RenderStarted();
 
         // Act
@@ -51,7 +51,7 @@ public class D2SharpEventCountersTests
     public void RenderCompleted_WithFailure_IncrementsErrorCount()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         eventSource.RenderStarted();
 
         // Act
@@ -65,7 +65,7 @@ public class D2SharpEventCountersTests
     public void RecordCacheAccess_WithHit_IncrementsCounters()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act
         eventSource.RecordCacheAccess(isHit: true);
@@ -78,7 +78,7 @@ public class D2SharpEventCountersTests
     public void RecordCacheAccess_WithMiss_IncrementsOnlyTotalRequests()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act
         eventSource.RecordCacheAccess(isHit: false);
@@ -91,7 +91,7 @@ public class D2SharpEventCountersTests
     public void MultipleConcurrentRenderStarted_AllTracked()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         var tasks = new List<Task>();
 
         // Act - Start 10 concurrent renders
@@ -110,7 +110,7 @@ public class D2SharpEventCountersTests
     public void MultipleConcurrentRenderCompleted_AllTracked()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         var tasks = new List<Task>();
 
         // Start some renders first
@@ -136,7 +136,7 @@ public class D2SharpEventCountersTests
     public void ConcurrentCacheAccess_AllTracked()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         var tasks = new List<Task>();
 
         // Act - Record 20 concurrent cache accesses
@@ -156,7 +156,7 @@ public class D2SharpEventCountersTests
     public void MixedConcurrentOperations_MaintainConsistency()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         var tasks = new List<Task>();
 
         // Act - Mix of all operation types
@@ -186,7 +186,7 @@ public class D2SharpEventCountersTests
     public void RenderDuration_VariousValues_Recorded()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         var durations = new[] { 0.1, 10.5, 100.0, 1000.5, 5000.0 };
 
         // Act
@@ -204,7 +204,7 @@ public class D2SharpEventCountersTests
     public void SequentialOperations_WorkCorrectly()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act - Simulate realistic usage pattern
         for (int i = 0; i < 5; i++)
@@ -222,7 +222,7 @@ public class D2SharpEventCountersTests
     public void ErrorRate_WithAllSuccesses_Calculated()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act - All successful renders
         for (int i = 0; i < 10; i++)
@@ -239,7 +239,7 @@ public class D2SharpEventCountersTests
     public void ErrorRate_WithSomeFailures_Calculated()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act - Mix of success and failures
         for (int i = 0; i < 10; i++)
@@ -256,7 +256,7 @@ public class D2SharpEventCountersTests
     public void CacheHitRate_WithNoRequests_HandlesZeroDivision()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act - Don't record any cache accesses
         // The cache hit rate calculation should handle 0 requests gracefully
@@ -269,7 +269,7 @@ public class D2SharpEventCountersTests
     public void CacheHitRate_WithAllHits_Calculated()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act - All cache hits
         for (int i = 0; i < 10; i++)
@@ -285,7 +285,7 @@ public class D2SharpEventCountersTests
     public void CacheHitRate_WithMixedHitsAndMisses_Calculated()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act - 50/50 mix
         for (int i = 0; i < 10; i++)
@@ -301,7 +301,7 @@ public class D2SharpEventCountersTests
     public void CacheHitRate_WithAllMisses_Calculated()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Act - All cache misses
         for (int i = 0; i < 10; i++)
@@ -317,7 +317,7 @@ public class D2SharpEventCountersTests
     public void EventSource_Name_IsD2Sharp()
     {
         // Arrange & Act
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Assert
         Assert.Equal("D2Sharp", eventSource.Name);
@@ -330,7 +330,7 @@ public class D2SharpEventCountersTests
         // This test verifies the pattern is correct by checking the instance exists
 
         // Arrange & Act
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         // Assert - Verify instance is valid and has correct name
         Assert.NotNull(eventSource);
@@ -341,7 +341,7 @@ public class D2SharpEventCountersTests
     public void OnEventCommand_WithEnable_InitializesCounters()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
 
         using var listener = new TestEventListener();
 
@@ -364,7 +364,7 @@ public class D2SharpEventCountersTests
     public void OnEventCommand_WithCountersEnabled_ReportsMetrics()
     {
         // Arrange
-        var eventSource = D2Sharp.Telemetry.D2SharpEventCounters.Instance;
+        var eventSource = D2Sharp.Internal.Telemetry.D2SharpEventCounters.Instance;
         var counterEvents = new List<string>();
 
         using var listener = new TestEventListener();
