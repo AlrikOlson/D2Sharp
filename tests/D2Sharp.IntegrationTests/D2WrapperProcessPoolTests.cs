@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
-namespace D2Sharp.Tests;
+namespace D2Sharp.IntegrationTests;
 
 /// <summary>
 /// Basic tests for D2WrapperProcessPool focusing on API surface.

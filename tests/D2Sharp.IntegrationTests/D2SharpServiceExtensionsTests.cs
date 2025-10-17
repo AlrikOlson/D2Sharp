@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Xunit;
 using D2Sharp.Extensions;
 
-namespace D2Sharp.Tests;
+namespace D2Sharp.IntegrationTests;
 
 /// <summary>
 /// Tests for D2Sharp DI extension methods focusing on registration and resolution.
