@@ -95,9 +95,11 @@ jobs:
         # Build the native library
         go build -buildmode=c-shared -o "d2wrapper.$LIB_EXT" .
 
-        # Copy to test output directory
+        # Copy to test output directories
         mkdir -p ../../../tests/D2Sharp.Tests/bin/Debug/net8.0
+        mkdir -p ../../../tests/D2Sharp.IntegrationTests/bin/Debug/net8.0
         cp "d2wrapper.$LIB_EXT" ../../../tests/D2Sharp.Tests/bin/Debug/net8.0/
+        cp "d2wrapper.$LIB_EXT" ../../../tests/D2Sharp.IntegrationTests/bin/Debug/net8.0/
 
     - name: Test
       run: dotnet test --no-restore --verbosity normal
