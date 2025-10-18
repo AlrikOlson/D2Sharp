@@ -50,7 +50,7 @@
         <OutputPath>bin\Release\</OutputPath>
     </PropertyGroup>
 
-    <Target Name="BuildD2Wrapper" BeforeTargets="PreBuildEvent" Condition="'$(CI)' != 'true'">
+    <Target Name="BuildD2Wrapper" BeforeTargets="PreBuildEvent">
         <Exec Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)d2wrapper\build.ps1&quot; $(Configuration)"/>
         <Exec Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="bash &quot;$(ProjectDir)d2wrapper/build.sh&quot; $(Configuration)"/>
     </Target>
@@ -76,8 +76,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="$(OutputPath)\$(NativeLibName)" Link="$(NativeLibName)" Condition="'$(CI)' != 'true'">
+        <None Include="$(OutputPath)\$(NativeLibName)" Link="$(NativeLibName)">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0</PackagePath>
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </None>
     </ItemGroup>
 
@@ -96,7 +99,7 @@
     <!-- Copy worker executable to output directory (process isolation) -->
     <!-- Worker should be built as part of solution build, so just copy it -->
     <!-- IMPORTANT: Worker runs as standalone process, so needs all dependencies even if consuming project has them in framework -->
-    <Target Name="CopyWorkerExecutable" AfterTargets="Build" Condition="'$(CI)' != 'true'">
+    <Target Name="CopyWorkerExecutable" AfterTargets="Build">
         <ItemGroup>
             <WorkerFiles Include="$(MSBuildThisFileDirectory)..\D2Sharp.Worker\bin\$(Configuration)\net8.0\**\*.*"/>
         </ItemGroup>
