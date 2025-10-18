@@ -7,19 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.2] - 2025-10-11
+## [0.4.0] - 2025-10-18
 
-### Changed
-- **D2 Library Update**: Upgraded from D2 v0.6.3 to v0.7.1
-  - Adds support for theme 303 (C4 PlantUML theme) and other new themes introduced in D2 v0.7.0
-  - Updated Go wrapper to use standard library `log/slog` instead of `cdr.dev/slog` for compatibility with D2 v0.7.x
-  - Minimum Go version updated to 1.24 (required by D2 v0.7.1)
+### Breaking Changes
+- **Main API class renamed**: `D2Wrapper` is now `D2Renderer`
+  - Old: `new D2Wrapper()`
+  - New: `new D2Renderer()`
+  - `D2Wrapper` still exists but moved to `D2Sharp.Internal` namespace for advanced users
+- **Dependency injection changed**: Registration pattern updated
+  - Old: `services.AddSingleton<D2Wrapper>()`
+  - New: `services.AddD2Sharp(d2 => d2.UseProcessPool(pool => pool.WithWorkerCount(15)))`
 
 ### Added
-- New test case for theme 303 (C4 PlantUML theme) to verify compatibility with new D2 themes
+- **D2Renderer class**: New zero-config API with smart defaults
+  - Uses worker process pool by default (3 workers)
+  - Constructor: `new D2Renderer()` or `new D2Renderer(workerCount: 10)`
+  - Factory methods: `CreateWithPool()` and `CreateDirect()`
+- **Process pool implementation**: Worker processes for crash isolation
+  - `D2WrapperProcessPool` manages pool of worker processes
+  - Circuit breaker pattern for fail-fast behavior
+  - Background health monitoring with automatic worker restart
+  - Proven reliability: 925/925 concurrent requests in stress tests
+- **Worker process**: `D2Sharp.Worker.exe` for isolated rendering
+  - Standalone executable using stdin/stdout
+  - JSON protocol for requests/responses
+  - Unlimited stack on Linux/macOS to prevent stack overflow
+- **D2Sharp.Abstractions project**: Shared types and interfaces
+  - `ID2Renderer` interface for polymorphism
+  - `RenderResult`, `RenderOptions`, `LayoutEngine`, `D2Error` moved here
+- **Dependency injection support**: Full ASP.NET Core integration
+  - `AddD2Sharp()` extension method with fluent configuration
+  - Builder pattern via `ID2RendererBuilder`
+  - Options pattern support with `D2SharpOptions`
+- **Integration test project**: New test suite with 100+ additional tests
+  - Separate D2Sharp.IntegrationTests project
+  - Process pool tests (concurrency, circuit breaker, error handling)
+  - Performance tests under load
+  - Total tests: 212+ (was 106)
+- **Enhanced Web demo**: Professional UI with render options
+  - Form controls for layout, theme, sketch mode, padding, scale
+  - Stress test endpoint for validating process pool
+  - Live rendering with error display
+- **VSCode debug configuration**: Launch configurations for debugging
+
+### Changed
+- **Reorganized internal classes**: Better separation of concerns
+  - `D2Wrapper`, `D2WrapperOptions`, `RenderCache` moved to `Internal` namespace
+  - Telemetry classes moved to `Internal/Telemetry`
+- **Test project split**: Separated unit and integration tests
+  - Unit tests: D2Sharp.Tests (fast, no process lifecycle)
+  - Integration tests: D2Sharp.IntegrationTests (process pool, E2E scenarios)
+- **Build scripts**: Added bash build script for WSL/Linux support
+- **Documentation**: Simplified README and CLAUDE.md to reflect new API
 
 ### Fixed
-- **Theme 303 Support**: Resolved "theme 303 not found" error by upgrading to D2 v0.7.1, which includes the C4 theme
+- **Stack overflow prevention**: Dedicated threads with 8MB stack
+  - Prevents crashes on complex diagrams
+  - Worker processes use `ulimit -s unlimited` on Linux/macOS
+- **Go panic recovery**: Native crash prevention in Go wrapper
+  - Catches panics and returns errors instead of crashing
+- **D2 v0.7.1 upgrade**: Theme 303 support
+  - Updated from D2 v0.6.3 to v0.7.1
+  - Go wrapper uses standard library `log/slog` instead of `cdr.dev/slog`
+  - Minimum Go version: 1.24
 
 ## [0.3.1] - 2025-10-04
 
@@ -298,8 +348,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.2...HEAD
-[0.3.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.1...v0.3.2
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0
 [0.3.0-alpha.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.2.0-beta.2...v0.3.0-alpha.1
