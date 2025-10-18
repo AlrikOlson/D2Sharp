@@ -1,6 +1,6 @@
 # D2Sharp Diagram CLI
 
-Command-line tool for testing the D2Sharp v0.3.0 NuGet package in real-world scenarios.
+Command-line tool for testing the D2Sharp v0.4.0 NuGet package in real-world scenarios.
 
 ## Purpose
 
@@ -18,7 +18,7 @@ This tool demonstrates and validates all major features of the published D2Sharp
 
 ## Installation
 
-The CLI references D2Sharp v0.3.0 directly from NuGet.org (not a local project reference).
+The CLI references D2Sharp v0.4.0 directly from NuGet.org (not a local project reference).
 
 ```bash
 cd tools/D2Sharp.DiagramCLI
@@ -73,24 +73,26 @@ dotnet run -- benchmark
 ## What Gets Tested
 
 ### Core D2Sharp Features
-1. Package installation from NuGet.org (v0.3.0)
+1. Package installation from NuGet.org (v0.4.0)
 2. Sync and async rendering
 3. Render options (themes, layout engines, sketch mode)
 4. Error handling (invalid syntax, missing files)
 
-### v0.3.0 Observability Features
-5. Caching (cache hits/misses and performance)
-6. Diagnostic IDs for correlation
-7. Concurrency control (MaxConcurrentRenders throttling)
-8. Telemetry (Activity/span tracking)
-9. Metrics (performance measurement)
+### v0.4.0 Features
+5. D2Renderer unified API with process pool
+6. Worker process isolation
+7. ASP.NET Core DI integration
+8. Caching (cache hits/misses and performance)
+9. Diagnostic IDs for correlation
+10. Telemetry (Activity/span tracking)
+11. Metrics (performance measurement)
 
 ### Real-World Scenarios
-10. File I/O (read .d2 files, write SVG outputs)
-11. Batch processing with progress reporting
-12. File watching and real-time regeneration
-13. JSON deserialization to D2 scripts
-14. Performance benchmarking
+12. File I/O (read .d2 files, write SVG outputs)
+13. Batch processing with progress reporting
+14. File watching and real-time regeneration
+15. JSON deserialization to D2 scripts
+16. Performance benchmarking
 
 ## Expected Output
 
