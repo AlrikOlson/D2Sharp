@@ -8,18 +8,8 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
 
-    <!-- Code Coverage Settings -->
-    <CollectCoverage>true</CollectCoverage>
-    <CoverletOutputFormat>cobertura,json,lcov,opencover</CoverletOutputFormat>
-    <CoverletOutput>./coverage/</CoverletOutput>
-    <Threshold>30</Threshold>
-    <ThresholdType>line</ThresholdType>
-    <ThresholdStat>total</ThresholdStat>
-    <ExcludeByFile>**/GlobalUsings.cs</ExcludeByFile>
-    <Exclude>[D2Sharp.Web]*,[D2Sharp.Benchmarks]*,[D2Sharp.Worker]*</Exclude>
-    <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
-    <!-- Exclude Phase 5a infrastructure (not yet integrated) -->
-    <ExcludeByFile>**/Telemetry/**/*.cs,**/Caching/**/*.cs,**/D2WrapperOptions.cs</ExcludeByFile>
+    <!-- Code Coverage Settings - Disabled, IntegrationTests collects combined coverage -->
+    <CollectCoverage>false</CollectCoverage>
   </PropertyGroup>
 
   <ItemGroup>
