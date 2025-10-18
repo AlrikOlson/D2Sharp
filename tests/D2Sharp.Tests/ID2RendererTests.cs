@@ -23,7 +23,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void AllImplementations_ImplementID2Renderer(string _, Func<ID2Renderer> factory)
+    public void AllImplementations_ImplementID2Renderer(Func<ID2Renderer> factory)
     {
         // Arrange & Act
         using var renderer = factory();
@@ -53,7 +53,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void RenderDiagram_WithNullScript_ThrowsArgumentNullException(string _, Func<ID2Renderer> factory)
+    public void RenderDiagram_WithNullScript_ThrowsArgumentNullException(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -124,7 +124,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public async Task RenderDiagramAsync_WithNullScript_ThrowsArgumentNullException(string _, Func<ID2Renderer> factory)
+    public async Task RenderDiagramAsync_WithNullScript_ThrowsArgumentNullException(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -155,7 +155,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void Dispose_AfterDisposal_ThrowsObjectDisposedException(string _, Func<ID2Renderer> factory)
+    public void Dispose_AfterDisposal_ThrowsObjectDisposedException(Func<ID2Renderer> factory)
     {
         // Arrange
         var renderer = factory();
@@ -167,7 +167,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void AllImplementations_AreDisposable(string _, Func<ID2Renderer> factory)
+    public void AllImplementations_AreDisposable(Func<ID2Renderer> factory)
     {
         // Arrange & Act
         var renderer = factory();
