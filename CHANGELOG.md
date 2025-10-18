@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Worker processes use `ulimit -s unlimited` on Linux/macOS
 - **Go panic recovery**: Native crash prevention in Go wrapper
   - Catches panics and returns errors instead of crashing
-- **D2 v0.7.1 upgrade**: Theme 303 support
+- **D2 v0.7.1 upgrade**: Adds theme 303 support (fixes #40)
   - Updated from D2 v0.6.3 to v0.7.1
   - Go wrapper uses standard library `log/slog` instead of `cdr.dev/slog`
   - Minimum Go version: 1.24
