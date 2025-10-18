@@ -99,9 +99,9 @@
     <!-- Copy worker executable to output directory (process isolation) -->
     <!-- IMPORTANT: Worker runs as standalone process, so needs all dependencies even if consuming project has them in framework -->
     <Target Name="CopyWorkerExecutable" AfterTargets="Build">
-        <!-- Ensure Worker is built before copying (avoids circular reference by using MSBuild task instead of ProjectReference) -->
+        <!-- Ensure Worker is restored and built before copying (avoids circular reference by using MSBuild task instead of ProjectReference) -->
         <MSBuild Projects="$(MSBuildThisFileDirectory)../D2Sharp.Worker/D2Sharp.Worker.csproj"
-                 Targets="Build"
+                 Targets="Restore;Build"
                  Properties="Configuration=$(Configuration)" />
         <ItemGroup>
             <WorkerFiles Include="$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/**/*.*"/>
