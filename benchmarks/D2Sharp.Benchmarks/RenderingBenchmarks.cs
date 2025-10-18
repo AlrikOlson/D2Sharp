@@ -1,3 +1,4 @@
+using D2Sharp.Internal;
 using BenchmarkDotNet.Attributes;
 using D2Sharp;
 

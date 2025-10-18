@@ -14,7 +14,6 @@ env:
   DOTNET_VERSION: '8.0.x'
   GO_VERSION: '1.22.2'
   NUGET_PACKAGE_NAME: 'D2Sharp'
-  CI: true
 
 jobs:
   build:
@@ -78,32 +77,11 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
 
-    - name: Build native library for tests
-      shell: bash
-      run: |
-        cd src/D2Sharp/d2wrapper
-
-        # Determine library extension based on OS
-        if [ "${{ runner.os }}" == "Windows" ]; then
-          LIB_EXT="dll"
-        elif [ "${{ runner.os }}" == "macOS" ]; then
-          LIB_EXT="dylib"
-        else
-          LIB_EXT="so"
-        fi
-
-        # Build the native library
-        go build -buildmode=c-shared -o "d2wrapper.$LIB_EXT" .
-
-        # Copy to test output directory
-        mkdir -p ../../../tests/D2Sharp.Tests/bin/Debug/net8.0
-        cp "d2wrapper.$LIB_EXT" ../../../tests/D2Sharp.Tests/bin/Debug/net8.0/
-
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test --configuration Release --no-restore --verbosity normal
 
     - name: Test with Coverage
-      run: dotnet test --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/
+      run: dotnet test --configuration Release --no-restore --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutput=./coverage/
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

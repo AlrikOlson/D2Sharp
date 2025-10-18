@@ -2,18 +2,19 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using D2Sharp.Caching;
-using D2Sharp.Telemetry;
+using D2Sharp.Internal.Caching;
+using D2Sharp.Internal.Telemetry;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.RegularExpressions;
 
-namespace D2Sharp;
+namespace D2Sharp.Internal;
 
 /// <summary>
-/// Provides functionality to render D2 diagrams as SVG.
+/// Provides functionality to render D2 diagrams as SVG using direct P/Invoke.
+/// For production use, consider using the D2Renderer class which provides process isolation.
 /// </summary>
-public partial class D2Wrapper : IDisposable
+public partial class D2Wrapper : ID2Renderer
 {
     private readonly ILogger<D2Wrapper> _logger;
     private readonly D2WrapperOptions _options;
@@ -197,7 +198,11 @@ public partial class D2Wrapper : IDisposable
         {
             try
             {
-                svgPtr = RenderDiagramInternal(script, optionsJson, out errorPtr);
+                // CRITICAL: Run P/Invoke on dedicated thread with large stack to avoid Go stack overflow
+                // Go's runtime uses deep recursion for complex diagrams which exceeds ThreadPool's ~1MB stack
+                var result = RunPInvokeOnDedicatedThread(script, optionsJson);
+                svgPtr = result.svgPtr;
+                errorPtr = result.errorPtr;
             }
             catch (DllNotFoundException ex)
             {
@@ -278,6 +283,75 @@ public partial class D2Wrapper : IDisposable
     }
 
     /// <summary>
+    /// Runs the P/Invoke call on a dedicated thread with a larger stack (8MB) to avoid stack overflows.
+    /// This is critical because Go's runtime uses deep recursion for complex diagrams.
+    /// </summary>
+    private static (IntPtr svgPtr, IntPtr errorPtr) RunPInvokeOnDedicatedThread(string script, string optionsJson)
+    {
+        IntPtr svgPtr = IntPtr.Zero;
+        IntPtr errorPtr = IntPtr.Zero;
+        Exception? exception = null;
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                // Set thread name to verify it's not a ThreadPool thread
+                Thread.CurrentThread.Name = $"D2Sharp-Render-{Environment.CurrentManagedThreadId}";
+                svgPtr = RenderDiagramInternal(script, optionsJson, out errorPtr);
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+            }
+        }, 8 * 1024 * 1024); // 8MB stack size - Go needs this for deep recursion
+
+        thread.Name = $"D2Sharp-Render-{thread.ManagedThreadId}";
+        thread.IsBackground = false; // Use foreground thread to ensure it completes
+        thread.Start();
+        thread.Join(); // Block until complete
+
+        if (exception != null)
+        {
+            throw exception;
+        }
+
+        return (svgPtr, errorPtr);
+    }
+
+    /// <summary>
+    /// Runs a function on a dedicated thread with a larger stack (8MB) to avoid stack overflows
+    /// when calling native code that may use deep recursion.
+    /// </summary>
+    private static Task<T> RunOnDedicatedThread<T>(Func<T> func, CancellationToken cancellationToken)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    tcs.SetCanceled(cancellationToken);
+                    return;
+                }
+
+                var result = func();
+                tcs.SetResult(result);
+            }
+            catch (Exception ex)
+            {
+                tcs.SetException(ex);
+            }
+        }, 8 * 1024 * 1024); // 8MB stack size (matches Linux default thread stack)
+
+        thread.IsBackground = true;
+        thread.Start();
+
+        return tcs.Task;
+    }
+
+    /// <summary>
     /// Asynchronously renders a D2 diagram script as SVG.
     /// </summary>
     /// <param name="script">The D2 diagram script to render.</param>
@@ -305,7 +379,7 @@ public partial class D2Wrapper : IDisposable
             await _concurrencySemaphore.WaitAsync(cancellationToken);
             try
             {
-                return await Task.Run(() =>
+                return await RunOnDedicatedThread(() =>
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     return RenderDiagram(script, options);
@@ -317,7 +391,7 @@ public partial class D2Wrapper : IDisposable
             }
         }
 
-        return await Task.Run(() =>
+        return await RunOnDedicatedThread(() =>
         {
             cancellationToken.ThrowIfCancellationRequested();
             return RenderDiagram(script, options);
@@ -474,86 +548,5 @@ public partial class D2Wrapper : IDisposable
 
             // Dispose unmanaged resources here if needed in the future
         }
-    }
-}
-
-/// <summary>
-/// Represents the result of a D2 diagram rendering operation.
-/// </summary>
-public record RenderResult
-{
-    /// <summary>
-    /// Gets the rendered SVG output. Null if rendering failed.
-    /// </summary>
-    public string? Svg { get; init; }
-
-    /// <summary>
-    /// Gets error information if rendering failed. Null if successful.
-    /// </summary>
-    public D2Error? Error { get; init; }
-
-    /// <summary>
-    /// Gets the diagnostic ID for this render operation. Useful for correlating logs and telemetry.
-    /// </summary>
-    public string? DiagnosticId { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether this result was served from cache.
-    /// </summary>
-    public bool FromCache { get; init; }
-
-    /// <summary>
-    /// Gets a value indicating whether the rendering was successful.
-    /// </summary>
-    public bool IsSuccess => Error == null;
-}
-
-/// <summary>
-/// Represents detailed error information from a failed D2 diagram rendering.
-/// </summary>
-public class D2Error
-{
-    /// <summary>
-    /// Gets the error message.
-    /// </summary>
-    public string Message { get; init; } = "";
-
-    /// <summary>
-    /// Gets the line number where the error occurred, if available.
-    /// </summary>
-    public int? LineNumber { get; init; }
-
-    /// <summary>
-    /// Gets the column number where the error occurred, if available.
-    /// </summary>
-    public int? Column { get; init; }
-
-    /// <summary>
-    /// Gets the content of the line where the error occurred, if available.
-    /// </summary>
-    public string? LineContent { get; init; }
-
-    /// <summary>
-    /// Gets the line content split into parts before, at, and after the error position for highlighting.
-    /// </summary>
-    /// <returns>A tuple containing the text before the error, the error character, and the text after the error.</returns>
-    public (string beforeError, string errorPart, string afterError) GetHighlightedLineParts()
-    {
-        if (string.IsNullOrEmpty(LineContent) || !Column.HasValue || Column.Value <= 0)
-        {
-            return (LineContent ?? "", "", "");
-        }
-
-        int highlightIndex = Column.Value - 1;
-        if (highlightIndex >= LineContent.Length)
-        {
-            highlightIndex = LineContent.Length - 1;
-        }
-
-        string beforeError = LineContent[..highlightIndex];
-        string errorPart = LineContent.Substring(highlightIndex, 1);
-        string afterError = highlightIndex + 1 < LineContent.Length ? LineContent[(highlightIndex + 1)..] : "";
-
-        return (beforeError, errorPart, afterError);
     }
 }

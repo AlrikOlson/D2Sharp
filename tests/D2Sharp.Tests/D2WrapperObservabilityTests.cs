@@ -1,3 +1,4 @@
+using D2Sharp.Internal;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;

@@ -1,4 +1,4 @@
-namespace D2Sharp;
+namespace D2Sharp.Internal;
 
 /// <summary>
 /// Configuration options for D2Wrapper behavior.

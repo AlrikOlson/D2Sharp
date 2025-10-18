@@ -8,13 +8,12 @@ A .NET wrapper for [D2](https://d2lang.com/), the modern diagram scripting langu
 
 ## Features
 
-- **Full D2 Support** - Render D2 diagrams
-- **Async/Await** - Task-based async rendering with cancellation and timeout support
-- **Thread-Safe** - Thread-safe with memory leak protection and error handling
-- **Flexible Rendering** - Layout engines (Dagre/ELK), themes, sketch mode
-- **Cross-Platform** - Works on Windows, macOS, and Linux
-- **Type-Safe** - Documented API with XML docs and nullable reference types
-- **Observability** - Built-in telemetry, metrics, and caching (v0.3.0+)
+- **Zero Configuration** - Works out of the box with sensible defaults
+- **High Performance** - Built-in worker pool handles concurrent requests efficiently
+- **Full D2 Support** - All D2 features: layouts, themes, sketch mode, and more
+- **Async/Await** - Task-based async rendering with cancellation support
+- **Cross-Platform** - Windows, macOS, and Linux
+- **Production Ready** - Battle-tested with comprehensive error handling
 
 ## Installation
 
@@ -24,18 +23,17 @@ dotnet add package D2Sharp
 
 ## Quick Start
 
-### Basic Rendering
-
 ```csharp
 using D2Sharp;
 
-var wrapper = new D2Wrapper();
-var result = wrapper.RenderDiagram("A -> B -> C");
+// Create a renderer (uses 3 worker processes by default)
+using var renderer = new D2Renderer();
+
+// Render a diagram
+var result = await renderer.RenderDiagramAsync("A -> B -> C");
 
 if (result.IsSuccess)
 {
-    Console.WriteLine(result.Svg);
-    // Save to file
     File.WriteAllText("diagram.svg", result.Svg);
 }
 else
@@ -44,31 +42,56 @@ else
 }
 ```
 
-### Async Rendering
+That's it! D2Sharp handles all the complexity for you.
+
+## Basic Usage
+
+### Simple Diagrams
 
 ```csharp
-using D2Sharp;
+using var renderer = new D2Renderer();
 
-var wrapper = new D2Wrapper();
+var script = @"
+server -> database: queries
+database -> cache: reads
+";
 
-// With cancellation token
-var cts = new CancellationTokenSource();
-var result = await wrapper.RenderDiagramAsync("x -> y", cancellationToken: cts.Token);
-
-// With timeout (30 seconds)
-var result = await wrapper.RenderDiagramAsync(
-    "A -> B",
-    timeout: TimeSpan.FromSeconds(30)
-);
+var result = await renderer.RenderDiagramAsync(script);
 ```
 
-## Rendering Options
+### Error Handling
 
-Customize rendering with `RenderOptions`:
+```csharp
+var result = await renderer.RenderDiagramAsync("A -> ");  // Invalid
+
+if (!result.IsSuccess)
+{
+    var error = result.Error;
+    Console.WriteLine($"Line {error.LineNumber}: {error.Message}");
+    Console.WriteLine($"  {error.LineContent}");
+}
+```
+
+### Synchronous Rendering
+
+```csharp
+var result = renderer.RenderDiagram("A -> B");  // Blocks until complete
+```
+
+### Cancellation & Timeouts
+
+```csharp
+// With cancellation token
+var cts = new CancellationTokenSource();
+var result = await renderer.RenderDiagramAsync(script, cancellationToken: cts.Token);
+
+// The renderer handles timeouts automatically - diagrams that take too long
+// will be cancelled and return an error result
+```
+
+## Customization
 
 ### Themes
-
-300+ themes available:
 
 ```csharp
 var options = new RenderOptions
@@ -76,10 +99,10 @@ var options = new RenderOptions
     ThemeId = 1  // Cool classics theme
 };
 
-var result = wrapper.RenderDiagram("server -> database", options);
+var result = await renderer.RenderDiagramAsync("server -> database", options);
 ```
 
-[View all D2 themes →](https://github.com/terrastruct/d2/tree/master/d2themes)
+300+ themes available: [View all D2 themes →](https://github.com/terrastruct/d2/tree/master/d2themes)
 
 ### Layout Engines
 
@@ -88,44 +111,32 @@ var options = new RenderOptions
 {
     Layout = LayoutEngine.Elk  // or LayoutEngine.Dagre (default)
 };
-
-var result = wrapper.RenderDiagram(@"
-    A -> B
-    B -> C
-    C -> D
-", options);
 ```
 
-- **Dagre** - Faster, simpler layouts (default)
+- **Dagre** - Fast, clean layouts (default)
 - **ELK** - More complex layouts with additional features
 
 ### Sketch Mode
 
-Create hand-drawn style diagrams:
-
 ```csharp
 var options = new RenderOptions
 {
-    Sketch = true
+    Sketch = true  // Hand-drawn style
 };
-
-var result = wrapper.RenderDiagram("idea -> prototype -> product", options);
 ```
 
-### Visual Customization
+### Visual Options
 
 ```csharp
 var options = new RenderOptions
 {
-    Pad = 50,        // Padding around diagram (default: 100)
-    Scale = 0.5,     // Scale factor (0.5 = half size)
+    Pad = 50,        // Padding (default: 100)
+    Scale = 0.5,     // Scale factor
     Center = true    // Center in viewbox
 };
-
-var result = wrapper.RenderDiagram("start -> end", options);
 ```
 
-### Combined Options
+### Combined Example
 
 ```csharp
 var options = new RenderOptions
@@ -133,120 +144,121 @@ var options = new RenderOptions
     Layout = LayoutEngine.Elk,
     ThemeId = 1,
     Sketch = true,
-    Pad = 75,
-    Center = true
+    Pad = 75
 };
 
-var result = wrapper.RenderDiagram(@"
-    server: Web Server {
-        shape: rectangle
+var result = await renderer.RenderDiagramAsync(complexDiagram, options);
+```
+
+## Advanced Configuration
+
+### Custom Worker Count
+
+```csharp
+// For high-concurrency scenarios
+using var renderer = new D2Renderer(workerCount: 15);
+```
+
+The default (3 workers) is optimal for most use cases.
+
+### ASP.NET Core Integration
+
+```csharp
+// In Program.cs - Basic registration (uses 10 workers by default)
+builder.Services.AddD2Sharp();
+
+// With fluent configuration
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15))
+    .ConfigureCaching(cache => cache.Enabled = true)
+    .ConfigureTelemetry(telemetry => telemetry.EnableMetrics = true));
+
+// Or use direct mode for CLI tools (no process pool)
+builder.Services.AddD2Sharp(d2 => d2.UseDirect());
+
+// In your controller/endpoint
+public class DiagramController : ControllerBase
+{
+    private readonly D2Renderer _renderer;
+
+    public DiagramController(D2Renderer renderer)
+    {
+        _renderer = renderer;
     }
-    db: Database {
-        shape: cylinder
+
+    [HttpPost]
+    public async Task<IActionResult> Render([FromBody] string script)
+    {
+        var result = await _renderer.RenderDiagramAsync(script);
+        return result.IsSuccess
+            ? Content(result.Svg, "image/svg+xml")
+            : BadRequest(result.Error);
     }
-    server -> db: queries
-", options);
-```
-
-## Error Handling
-
-Error information includes:
-
-```csharp
-var result = wrapper.RenderDiagram("A -> ");  // Invalid script
-
-if (!result.IsSuccess)
-{
-    var error = result.Error;
-    Console.WriteLine($"Message: {error.Message}");
-    Console.WriteLine($"Line: {error.LineNumber}");
-    Console.WriteLine($"Column: {error.Column}");
-    Console.WriteLine($"Line Content: {error.LineContent}");
-
-    // Get highlighted error parts
-    var parts = error.GetHighlightedLineParts();
-    Console.WriteLine($"Before: {parts.beforeError}");
-    Console.WriteLine($"Error: {parts.errorPart}");
-    Console.WriteLine($"After: {parts.afterError}");
 }
 ```
 
-## Logging
+### Configuration Options
 
-Works with `Microsoft.Extensions.Logging`:
+The fluent builder API provides several configuration options:
 
+#### Process Pool Configuration
 ```csharp
-using Microsoft.Extensions.Logging;
-
-var loggerFactory = LoggerFactory.Create(builder =>
-{
-    builder.AddConsole();
-});
-
-var logger = loggerFactory.CreateLogger<D2Wrapper>();
-var wrapper = new D2Wrapper(logger);
-
-var result = wrapper.RenderDiagram("A -> B");
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15)));  // Customize worker count
 ```
 
-## Resource Management
-
-Implements `IDisposable`:
-
+#### Caching Configuration
 ```csharp
-using var wrapper = new D2Wrapper();
-var result = wrapper.RenderDiagram("A -> B");
-
-// Resources automatically cleaned up when leaving scope
+builder.Services.AddD2Sharp(d2 => d2
+    .ConfigureCaching(cache =>
+    {
+        cache.Enabled = true;
+        cache.MaxSize = 500;
+        cache.Expiration = TimeSpan.FromMinutes(30);
+    }));
 ```
 
-## Advanced Usage
-
-### Dark Theme Support
-
+#### Telemetry Configuration
 ```csharp
-var options = new RenderOptions
-{
-    ThemeId = 0,          // Light theme
-    DarkThemeId = 200     // Dark theme (when client is in dark mode)
-};
+builder.Services.AddD2Sharp(d2 => d2
+    .ConfigureTelemetry(telemetry =>
+    {
+        telemetry.EnableTracing = true;
+        telemetry.EnableMetrics = true;
+        telemetry.EnableDiagnosticIds = true;
+    }));
 ```
 
-### Timeout Protection
-
+#### Concurrency Limits (Direct Mode Only)
 ```csharp
-// Set maximum rendering time
-var result = await wrapper.RenderDiagramAsync(
-    complexScript,
-    timeout: TimeSpan.FromSeconds(15)
-);
+builder.Services.AddD2Sharp(d2 => d2
+    .UseDirect()
+    .ConfigureConcurrency(concurrency =>
+    {
+        concurrency.MaxConcurrentRenders = 5;
+    }));
 ```
 
-Timeout bounds:
-- Minimum: 100ms
-- Maximum: 10 minutes
+#### Combined Configuration
+```csharp
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(20))
+    .ConfigureCaching(cache => cache.Enabled = true)
+    .ConfigureTelemetry(telemetry => telemetry.EnableMetrics = true));
+```
 
-### Input Validation
+### Direct Mode (CLI Tools)
 
-Automatic validation:
-- Maximum script length: 10MB
-- Timeout ranges
-- Disposed state
+For command-line tools or single-threaded applications where you don't need worker processes:
 
 ```csharp
-try
-{
-    var result = wrapper.RenderDiagram(veryLongScript);
-}
-catch (ArgumentException ex)
-{
-    Console.WriteLine($"Script too long: {ex.Message}");
-}
+using var renderer = D2Renderer.CreateDirect();
+var result = await renderer.RenderDiagramAsync(script);
 ```
+
+Note: Direct mode is not recommended for web applications with concurrent requests.
 
 ## D2 Language Reference
-
-Full D2 language syntax:
 
 ```d2
 # Shapes and connections
@@ -265,212 +277,38 @@ client.shape: person
 
 # Direction
 direction: right
-
-# And much more...
 ```
 
 [Learn D2 syntax →](https://d2lang.com/tour/intro)
 
-## Observability & Diagnostics (v0.3.0+)
-
-Built-in caching, distributed tracing, and real-time metrics.
-
-### Quick Start with Observability
-
-```csharp
-using D2Sharp;
-
-// Configure observability features
-var options = new D2WrapperOptions
-{
-    EnableCaching = true,              // Enable response caching (default: true)
-    CacheSize = 100,                   // Max cache entries (default: 100)
-    CacheExpiration = TimeSpan.FromHours(1),
-    MaxConcurrentRenders = 10,         // Limit concurrent renders (0 = unlimited)
-    EnableTelemetry = true,            // Enable Activity/spans (default: true)
-    EnableMetrics = true,              // Enable EventCounters (default: true)
-    EnableDiagnosticIds = true         // Generate diagnostic IDs (default: true)
-};
-
-using var wrapper = new D2Wrapper(options);
-var result = wrapper.RenderDiagram("A -> B -> C");
-
-Console.WriteLine($"Diagnostic ID: {result.DiagnosticId}");
-Console.WriteLine($"From cache: {result.FromCache}");
-```
-
-### Automatic Caching
-
-Caches successful renders based on script content and options:
-
-```csharp
-var wrapper = new D2Wrapper(new D2WrapperOptions { EnableCaching = true });
-
-// First render - executes D2 engine
-var result1 = wrapper.RenderDiagram("server -> database");
-Console.WriteLine($"From cache: {result1.FromCache}"); // False
-
-// Second render - served from cache
-var result2 = wrapper.RenderDiagram("server -> database");
-Console.WriteLine($"From cache: {result2.FromCache}"); // True
-Console.WriteLine($"Same SVG: {result1.Svg == result2.Svg}"); // True
-```
-
-Cache keys are based on:
-- Script content (SHA256 hash)
-- Layout engine
-- Theme IDs
-- Sketch mode
-- Padding, scale, and center options
-
-### Concurrency Control
-
-Limit concurrent render operations to prevent resource exhaustion:
-
-```csharp
-var options = new D2WrapperOptions
-{
-    MaxConcurrentRenders = 5  // Max 5 concurrent renders
-};
-
-using var wrapper = new D2Wrapper(options);
-
-// These will be automatically throttled to 5 concurrent executions
-var tasks = Enumerable.Range(0, 20)
-    .Select(i => wrapper.RenderDiagramAsync($"Task {i} -> Result {i}"))
-    .ToArray();
-
-var results = await Task.WhenAll(tasks);
-```
-
-### Distributed Tracing
-
-Works with OpenTelemetry and Application Insights:
-
-```csharp
-using System.Diagnostics;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
-
-// Configure OpenTelemetry
-var tracerProvider = Sdk.CreateTracerProviderBuilder()
-    .AddSource("D2Sharp")
-    .AddConsoleExporter()
-    .Build();
-
-var wrapper = new D2Wrapper(new D2WrapperOptions { EnableTelemetry = true });
-var result = wrapper.RenderDiagram("A -> B");
-
-// Activity tags automatically include:
-// - d2sharp.script.length: Script character count
-// - d2sharp.layout.engine: Layout engine (dagre/elk)
-// - d2sharp.theme.id: Theme ID
-// - d2sharp.sketch.enabled: Sketch mode flag
-// - d2sharp.diagnostic.id: Diagnostic correlation ID
-// - d2sharp.cache.hit: Whether result was from cache
-// - d2sharp.result.status: success/error
-// - d2sharp.error.type: Error type if failed
-```
-
-### Real-Time Metrics
-
-Monitor performance with EventCounters:
-
-```bash
-# View real-time metrics with dotnet-counters
-dotnet-counters monitor -n YourApp --counters D2Sharp
-
-# Available metrics:
-# - renders-total: Total renders per second
-# - renders-active: Currently active render operations
-# - render-duration-ms: Average render duration (ms)
-# - cache-hit-rate: Cache hit percentage
-# - error-rate: Error percentage
-```
-
-### Diagnostic IDs
-
-Every render gets a unique diagnostic ID for log correlation:
-
-```csharp
-var wrapper = new D2Wrapper(new D2WrapperOptions { EnableDiagnosticIds = true });
-var result = wrapper.RenderDiagram("A -> B");
-
-// Use diagnostic ID for log correlation
-Console.WriteLine($"Render completed: {result.DiagnosticId}");
-// Output: Render completed: 7e3f5a9c2b1d4e8f...
-
-// Diagnostic IDs are unique per render, even for cache hits
-var result2 = wrapper.RenderDiagram("A -> B");
-Console.WriteLine($"Cache hit: {result2.DiagnosticId}"); // Different ID
-```
-
-### Minimal Configuration
-
-For development or when you don't need observability features:
-
-```csharp
-var options = new D2WrapperOptions
-{
-    EnableCaching = false,
-    EnableTelemetry = false,
-    EnableMetrics = false,
-    EnableDiagnosticIds = false
-};
-
-using var wrapper = new D2Wrapper(options);
-// Behaves like the original wrapper with minimal overhead
-```
-
 ## Performance
 
-- **Thread-safe**: Safe for concurrent use across multiple threads
-- **Memory efficient**: Automatic cleanup with try-finally patterns, minimal allocations
-- **Async-first**: Non-blocking async API with cancellation support
-- **Optimized**: GeneratedRegex for fast error parsing, zero-allocation patterns
+D2Sharp is optimized for production workloads:
 
-### Test Coverage
+- **Concurrent requests**: Efficiently handled via worker pool
+- **Memory efficient**: Automatic cleanup and minimal allocations
+- **Fast**: Simple diagrams render in ~30-50ms
 
-- **Line Coverage**: 82.6%
-- **Branch Coverage**: 75.5%
-- **Method Coverage**: 97.4%
-
-Coverage reports are automatically generated on every commit and available on [Codecov](https://codecov.io/gh/AlrikOlson/D2Sharp).
-
-### Performance Benchmarks
-
-Performance benchmarks are available in the `benchmarks/` directory using BenchmarkDotNet.
-
-Run benchmarks:
-```bash
-cd benchmarks/D2Sharp.Benchmarks
-dotnet run -c Release
-```
-
-**Typical Performance** (Apple Silicon M-series, .NET 8.0):
-- Simple diagrams (A -> B): ~30-50ms
-- Complex diagrams (10-20 nodes): ~100-200ms
-- Very complex diagrams (50+ nodes): ~300-500ms
-
-Performance varies based on diagram complexity, layout engine (Dagre vs ELK), and hardware.
+Typical performance (on Apple Silicon):
+- Simple diagrams: 30-50ms
+- Complex diagrams: 100-200ms
+- Very complex: 300-500ms
 
 ## Building from Source
 
 ### Prerequisites
 
-- .NET 8.0 SDK or newer
-- Go 1.22+ or newer
-- GCC (for compiling the Go wrapper)
+- .NET 8.0 SDK
+- Go 1.22+
+- GCC
 
-Check your setup:
+Check dependencies:
 
-**Windows:**
-```powershell
-.\depcheck.ps1
-```
-
-**Unix-based systems:**
 ```bash
+# Windows
+.\depcheck.ps1
+
+# Unix/Linux/macOS
 ./depcheck.sh
 ```
 
@@ -482,23 +320,15 @@ dotnet build
 
 ## Project Structure
 
-- `src/D2Sharp` - Main library project
-- `src/D2Sharp/d2wrapper` - Go wrapper code
+- `src/D2Sharp` - Main library
 - `examples/D2Sharp.Web` - Web demo application
-- `tests/D2Sharp.Tests` - Unit and integration tests
+- `tests/D2Sharp.Tests` - Test suite
 
-## Contributing
+## Additional Documentation
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## License
-
-MIT License - see [LICENSE.txt](LICENSE.txt) for details.
-
-## Acknowledgments
-
-- [D2](https://github.com/terrastruct/d2) - The modern diagram scripting language
-- Built with .NET 8.0
+- [Observability & Telemetry](OBSERVABILITY.md) - Advanced monitoring features
+- [Architecture](ARCHITECTURE.md) - Technical implementation details
+- [Contributing](CONTRIBUTING.md) - Contribution guidelines
 
 ## Links
 
@@ -506,3 +336,12 @@ MIT License - see [LICENSE.txt](LICENSE.txt) for details.
 - [D2 Themes Gallery](https://github.com/terrastruct/d2/tree/master/d2themes)
 - [D2 Playground](https://play.d2lang.com/)
 - [Report Issues](https://github.com/AlrikOlson/D2Sharp/issues)
+
+## License
+
+MIT License - see [LICENSE.txt](LICENSE.txt) for details.
+
+## Acknowledgments
+
+- [D2](https://github.com/terrastruct/d2) - The diagram scripting language
+- Built with .NET 8.0

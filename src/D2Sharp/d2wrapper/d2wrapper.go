@@ -10,10 +10,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	slog "log/slog"
 	"os"
+	"runtime"
 	"unsafe"
-
-	"cdr.dev/slog"
 
 	"oss.terrastruct.com/d2/d2graph"
 	"oss.terrastruct.com/d2/d2layouts/d2dagrelayout"
@@ -40,6 +41,22 @@ type RenderOptionsJSON struct {
 
 //export RenderDiagram
 func RenderDiagram(script *C.char, optionsJSON *C.char, errorPtr **C.char) *C.char {
+	// Recover from panics to prevent crashing the host process
+	defer func() {
+		if r := recover(); r != nil {
+			*errorPtr = C.CString(fmt.Sprintf("Panic during rendering: %v", r))
+		}
+	}()
+
+	// Lock this goroutine to the current OS thread
+	// This ensures all work happens on the .NET-provided thread with large stack
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	// Force Go to use only 1 OS thread to prevent creating threads with small stacks
+	oldMaxProcs := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(oldMaxProcs)
+
 	goScript := C.GoString(script)
 	goOptionsJSON := C.GoString(optionsJSON)
 
@@ -58,7 +75,8 @@ func RenderDiagram(script *C.char, optionsJSON *C.char, errorPtr **C.char) *C.ch
 		return nil
 	}
 
-	logger := slog.Logger{}
+	// Create a logger that discards output (quiet mode for library use)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
 	// Determine layout engine
 	layoutResolver := func(engine string) (d2graph.LayoutGraph, error) {
@@ -85,6 +103,9 @@ func RenderDiagram(script *C.char, optionsJSON *C.char, errorPtr **C.char) *C.ch
 	}
 	if opts.Sketch != nil {
 		renderOpts.Sketch = opts.Sketch
+	}
+	if opts.Scale != nil {
+		renderOpts.Scale = opts.Scale
 	}
 
 	compileOpts := &d2lib.CompileOptions{

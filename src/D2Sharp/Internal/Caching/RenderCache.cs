@@ -2,7 +2,7 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace D2Sharp.Caching;
+namespace D2Sharp.Internal.Caching;
 
 /// <summary>
 /// Provides in-memory caching of rendered diagrams with LRU eviction.

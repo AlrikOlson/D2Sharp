@@ -8,22 +8,13 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
 
-    <!-- Code Coverage Settings -->
-    <CollectCoverage>true</CollectCoverage>
-    <CoverletOutputFormat>cobertura,json,lcov,opencover</CoverletOutputFormat>
-    <CoverletOutput>./coverage/</CoverletOutput>
-    <Threshold>80</Threshold>
-    <ThresholdType>line</ThresholdType>
-    <ThresholdStat>total</ThresholdStat>
-    <ExcludeByFile>**/GlobalUsings.cs</ExcludeByFile>
-    <Exclude>[D2Sharp.Web]*,[D2Sharp.Benchmarks]*</Exclude>
-    <ExcludeByAttribute>GeneratedCodeAttribute</ExcludeByAttribute>
-    <!-- Exclude Phase 5a infrastructure (not yet integrated) -->
-    <ExcludeByFile>**/Telemetry/**/*.cs,**/Caching/**/*.cs,**/D2WrapperOptions.cs</ExcludeByFile>
+    <!-- Code Coverage Settings - Disabled, IntegrationTests collects combined coverage -->
+    <CollectCoverage>false</CollectCoverage>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
@@ -43,6 +34,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\D2Sharp\D2Sharp.csproj" />
     <ProjectReference Include="..\..\examples\D2Sharp.Web\D2Sharp.Web.csproj" />
+    <ProjectReference Include="..\..\src\D2Sharp.Abstractions\D2Sharp.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

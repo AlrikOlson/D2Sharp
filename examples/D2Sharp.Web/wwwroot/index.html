@@ -3,34 +3,1128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>D2Sharp Web Demo</title>
+    <title>D2Sharp - Diagram Renderer Demo</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        textarea { width: 100%; height: 200px; }
-        #result { margin-top: 20px; }
-        .error { color: red; }
-        .error-line { font-family: monospace; white-space: pre; background-color: #ffeeee; padding: 5px; border-radius: 3px; }
-        .error-highlight { background-color: #ff6666; color: white; font-weight: bold; }
+        /* CSS Variables - Design System */
+        :root {
+            --color-black: #1A1A1A;
+            --color-white: #FFFFFF;
+            --color-primary: #0052CC;
+            --color-primary-hover: #003D99;
+            --color-success: #00875A;
+            --color-warning: #FF991F;
+            --color-warning-hover: #FF8800;
+            --color-error: #DE350B;
+            --color-gray-light: #F4F5F7;
+            --color-gray-border: #DFE1E6;
+            --color-gray-disabled: #A5ADBA;
+
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --space-xl: 48px;
+
+            --border-width: 2px;
+            --border-width-bold: 3px;
+
+            --shadow-sm: 4px 4px 0 var(--color-black);
+            --shadow-md: 6px 6px 0 var(--color-black);
+
+            --font-display: 900;
+            --font-heading: 700;
+            --font-body: 600;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--color-white);
+            color: var(--color-black);
+            height: 100vh;
+            overflow: hidden;
+            font-weight: var(--font-body);
+        }
+
+        /* Header */
+        .header {
+            background: var(--color-black);
+            border-bottom: var(--border-width-bold) solid var(--color-primary);
+            padding: var(--space-md) var(--space-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: var(--font-display);
+            color: var(--color-white);
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+
+        .header .subtitle {
+            font-size: 0.75rem;
+            color: var(--color-primary);
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            background: var(--color-white);
+            padding: var(--space-xs) var(--space-sm);
+            border: var(--border-width) solid var(--color-primary);
+        }
+
+        .tabs {
+            display: flex;
+            gap: var(--space-xs);
+        }
+
+        .tab {
+            padding: var(--space-sm) var(--space-md);
+            background: var(--color-white);
+            border: var(--border-width) solid var(--color-white);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-black);
+            transition: all 0.15s;
+        }
+
+        .tab:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .tab.active {
+            background: var(--color-primary);
+            color: var(--color-white);
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Main Content */
+        .main {
+            display: flex;
+            height: calc(100vh - 100px);
+        }
+
+        .tab-content {
+            display: none;
+            width: 100%;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Editor Section */
+        .editor-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--color-white);
+            border-right: var(--border-width-bold) solid var(--color-gray-border);
+        }
+
+        .editor-header {
+            padding: var(--space-sm);
+            border-bottom: var(--border-width) solid var(--color-gray-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-header span {
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .editor-header select {
+            padding: var(--space-xs) var(--space-sm);
+            border: var(--border-width) solid var(--color-black);
+            font-size: 0.75rem;
+            font-weight: var(--font-body);
+            color: var(--color-black);
+            background: var(--color-white);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            transition: all 0.15s;
+        }
+
+        .editor-header select:hover {
+            background: var(--color-gray-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .editor-header select:focus {
+            outline: var(--border-width) solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            border-bottom: var(--border-width) solid var(--color-gray-border);
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 0.875rem;
+            font-weight: var(--font-body);
+            padding: var(--space-sm);
+            border: none;
+            resize: none;
+            line-height: 1.6;
+            background: var(--color-white);
+            color: var(--color-black);
+        }
+
+        textarea:focus {
+            outline: none;
+            background: var(--color-gray-light);
+        }
+
+        .editor-footer {
+            padding: var(--space-sm);
+            background: var(--color-white);
+            display: flex;
+            gap: var(--space-sm);
+            align-items: center;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            border: var(--border-width) solid var(--color-black);
+            appearance: none;
+            background: var(--color-white);
+            transition: all 0.15s;
+        }
+
+        .checkbox-group input[type="checkbox"]:checked {
+            background: var(--color-primary);
+            box-shadow: inset 0 0 0 3px var(--color-white);
+        }
+
+        .checkbox-group input[type="checkbox"]:hover {
+            box-shadow: var(--shadow-sm);
+        }
+
+        .checkbox-group label {
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--color-black);
+            cursor: pointer;
+        }
+
+        /* Preview Section */
+        .preview-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--color-white);
+        }
+
+        .preview-header {
+            padding: var(--space-sm);
+            background: var(--color-white);
+            border-bottom: var(--border-width) solid var(--color-gray-border);
+        }
+
+        .options-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: var(--space-sm);
+        }
+
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+        }
+
+        .option-group label {
+            font-size: 0.75rem;
+            color: var(--color-black);
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .option-group select {
+            padding: var(--space-xs) var(--space-sm);
+            border: var(--border-width) solid var(--color-black);
+            font-size: 0.75rem;
+            font-weight: var(--font-body);
+            color: var(--color-black);
+            background: var(--color-white);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            transition: all 0.15s;
+        }
+
+        .option-group select:hover {
+            background: var(--color-gray-light);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .option-group select:focus {
+            outline: var(--border-width) solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        .option-group input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: var(--color-black);
+            cursor: pointer;
+        }
+
+        .option-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--color-primary);
+            border: var(--border-width) solid var(--color-black);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .option-group input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: var(--shadow-sm);
+        }
+
+        .option-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--color-primary);
+            border: var(--border-width) solid var(--color-black);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .option-group input[type="range"]::-moz-range-thumb:hover {
+            box-shadow: var(--shadow-sm);
+        }
+
+        .range-value {
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            color: var(--color-primary);
+        }
+
+        .preview-wrapper {
+            flex: 1;
+            overflow: auto;
+            padding: var(--space-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-gray-light);
+        }
+
+        #result {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #result svg {
+            /* Allow D2 scale parameter to control size */
+        }
+
+        /* Error State */
+        .error {
+            background: var(--color-white);
+            border: var(--border-width-bold) solid var(--color-error);
+            color: var(--color-black);
+            padding: var(--space-sm);
+            font-size: 0.875rem;
+            font-weight: var(--font-body);
+            box-shadow: var(--shadow-md);
+        }
+
+        .error strong {
+            color: var(--color-error);
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+        }
+
+        .error-line {
+            font-family: monospace;
+            background: var(--color-gray-light);
+            border: var(--border-width) solid var(--color-gray-border);
+            padding: var(--space-xs);
+            margin-top: var(--space-xs);
+            white-space: pre;
+            font-weight: var(--font-body);
+        }
+
+        .error-highlight {
+            background: var(--color-error);
+            color: var(--color-white);
+            padding: 0.125rem 0.25rem;
+            font-weight: var(--font-heading);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            color: var(--color-black);
+            font-size: 1rem;
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Buttons */
+        button {
+            padding: var(--space-sm) var(--space-md);
+            background: var(--color-primary);
+            color: var(--color-white);
+            border: var(--border-width) solid var(--color-black);
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.15s;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--color-primary-hover);
+            box-shadow: var(--shadow-md);
+        }
+
+        button:active:not(:disabled) {
+            box-shadow: var(--shadow-sm);
+        }
+
+        button:disabled {
+            background: var(--color-gray-border);
+            color: var(--color-gray-disabled);
+            cursor: not-allowed;
+            border-color: var(--color-gray-border);
+        }
+
+        button.secondary {
+            background: var(--color-white);
+            color: var(--color-black);
+        }
+
+        button.secondary:hover:not(:disabled) {
+            background: var(--color-gray-light);
+        }
+
+        #runStressTest {
+            background: var(--color-warning);
+            color: var(--color-black);
+            font-size: 0.875rem;
+            padding: var(--space-sm) var(--space-lg);
+        }
+
+        #runStressTest:hover:not(:disabled) {
+            background: var(--color-warning-hover);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Stress Test Tab */
+        #stress-tab {
+            flex-direction: column;
+            overflow: auto;
+            padding: var(--space-md);
+            background: var(--color-white);
+        }
+
+        .stress-controls {
+            display: flex;
+            gap: var(--space-sm);
+            align-items: center;
+            margin-bottom: var(--space-md);
+            padding-bottom: var(--space-sm);
+            border-bottom: var(--border-width) solid var(--color-gray-border);
+        }
+
+        .stress-controls span {
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            color: var(--color-black);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .stress-status {
+            padding: var(--space-sm);
+            background: var(--color-white);
+            border: var(--border-width) solid var(--color-black);
+            font-size: 0.875rem;
+            font-weight: var(--font-heading);
+            text-align: center;
+            margin-bottom: var(--space-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .stress-status.running {
+            background: var(--color-warning);
+            color: var(--color-black);
+            border-color: var(--color-warning);
+        }
+
+        .stress-status.success {
+            background: var(--color-success);
+            color: var(--color-white);
+            border-color: var(--color-success);
+        }
+
+        .live-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .live-metric {
+            background: var(--color-white);
+            padding: var(--space-md);
+            border: var(--border-width) solid var(--color-black);
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .live-metric:hover {
+            box-shadow: var(--shadow-sm);
+        }
+
+        .live-metric-value {
+            font-size: 2rem;
+            font-weight: var(--font-display);
+            color: var(--color-primary);
+        }
+
+        .live-metric-label {
+            font-size: 0.75rem;
+            color: var(--color-black);
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: var(--space-xs);
+        }
+
+        .phase-results {
+            display: grid;
+            gap: var(--space-md);
+        }
+
+        .phase-card {
+            background: var(--color-white);
+            border: var(--border-width) solid var(--color-black);
+            padding: var(--space-md);
+            transition: all 0.15s;
+        }
+
+        .phase-card.running {
+            border-left-width: 8px;
+            border-left-color: var(--color-warning);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .phase-card.completed {
+            border-left-width: 8px;
+            border-left-color: var(--color-success);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .phase-name {
+            font-weight: var(--font-heading);
+            font-size: 0.875rem;
+            color: var(--color-black);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .phase-badge {
+            padding: var(--space-xs) var(--space-sm);
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            border: var(--border-width) solid var(--color-black);
+        }
+
+        .phase-badge.running {
+            background: var(--color-warning);
+            color: var(--color-black);
+        }
+
+        .phase-badge.completed {
+            background: var(--color-success);
+            color: var(--color-white);
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: var(--color-gray-light);
+            border: var(--border-width) solid var(--color-black);
+            overflow: hidden;
+            margin-bottom: var(--space-sm);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--color-primary);
+            transition: width 0.3s;
+        }
+
+        .phase-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: var(--space-sm);
+            font-size: 0.875rem;
+        }
+
+        .stat {
+            text-align: center;
+            padding: var(--space-sm);
+            background: var(--color-gray-light);
+            border: var(--border-width) solid var(--color-gray-border);
+        }
+
+        .stat-value {
+            font-weight: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--color-black);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            color: var(--color-black);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-top: var(--space-xs);
+        }
+
+        .summary-card {
+            background: var(--color-primary);
+            color: var(--color-white);
+            padding: var(--space-lg);
+            border: var(--border-width-bold) solid var(--color-black);
+            margin-top: var(--space-md);
+            box-shadow: var(--shadow-md);
+        }
+
+        .summary-title {
+            font-size: 1.5rem;
+            font-weight: var(--font-display);
+            margin-bottom: var(--space-md);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .summary-stat {
+            text-align: center;
+            background: var(--color-white);
+            color: var(--color-black);
+            padding: var(--space-md);
+            border: var(--border-width) solid var(--color-black);
+        }
+
+        .summary-stat-value {
+            font-size: 1.75rem;
+            font-weight: var(--font-display);
+        }
+
+        .summary-stat-label {
+            font-size: 0.75rem;
+            font-weight: var(--font-heading);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: var(--space-xs);
+        }
+
+        .rating {
+            font-size: 2.5rem;
+            font-weight: var(--font-display);
+            text-align: center;
+            padding: var(--space-lg);
+            background: var(--color-black);
+            color: var(--color-white);
+            border: var(--border-width-bold) solid var(--color-white);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .activity-log {
+            min-height: 600px;
+            max-height: 800px;
+            overflow-y: auto;
+            background: var(--color-black);
+            color: var(--color-success);
+            border: var(--border-width-bold) solid var(--color-black);
+            padding: var(--space-md);
+            font-size: 0.875rem;
+            font-family: monospace;
+            font-weight: var(--font-body);
+            margin-top: var(--space-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .activity-log-entry {
+            padding: var(--space-xs) 0;
+            border-bottom: 1px solid var(--color-gray-border);
+        }
+
+        .activity-log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .activity-log-timestamp {
+            color: var(--color-warning);
+            margin-right: var(--space-sm);
+            font-weight: var(--font-heading);
+        }
     </style>
 </head>
 <body>
-    <h1>D2Sharp Web Demo</h1>
-    <textarea id="script" placeholder="Enter your D2 script here...">direction: right
-A -> B ->
-C -> D</textarea>
-    <button onclick="renderDiagram()">Render Diagram</button>
-    <div id="result"></div>
+    <div class="header">
+        <div class="header-title">
+            <h1>D2Sharp</h1>
+            <span class="subtitle">.NET Diagram Renderer</span>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('diagram')">Diagram Renderer</button>
+            <button class="tab" onclick="switchTab('stress')">Stress Test</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Diagram Tab -->
+        <div id="diagram-tab" class="tab-content active">
+            <div class="editor-section">
+                <div class="editor-header">
+                    <span>Editor</span>
+                    <select id="exampleSelect" onchange="loadExample()">
+                        <option value="">Load Example...</option>
+                        <option value="simple">Simple Flow</option>
+                        <option value="webarch">Web Architecture</option>
+                        <option value="microservices">Microservices</option>
+                        <option value="flowchart">Flowchart</option>
+                        <option value="network">Network Diagram</option>
+                        <option value="database">Database Schema</option>
+                    </select>
+                </div>
+                <div class="editor-wrapper">
+                    <textarea id="script" placeholder="Enter your D2 script here...">direction: right
+user: {shape: person}
+browser: Web Browser
+server: API Server {shape: rectangle}
+db: Database {shape: cylinder}
+
+user -> browser: Opens app
+browser -> server: HTTPS Request
+server -> db: Query data
+db -> server: Results
+server -> browser: JSON Response
+browser -> user: Display</textarea>
+                </div>
+                <div class="editor-footer">
+                    <button onclick="renderDiagram()">Render</button>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="autoRender">
+                        <label for="autoRender">Auto-render</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-header">
+                    <div class="options-panel">
+                        <div class="option-group">
+                            <label>Layout Engine</label>
+                            <select id="layout" onchange="renderIfAuto()">
+                                <option value="0">Dagre (Fast)</option>
+                                <option value="1">ELK (Advanced)</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label>Theme</label>
+                            <select id="theme" onchange="renderIfAuto()">
+                                <option value="">Default (0)</option>
+                                <option value="1">Neutral gray (1)</option>
+                                <option value="3">Flagship Terrastruct (3)</option>
+                                <option value="4">Cool classics (4)</option>
+                                <option value="5">Mixed berry blue (5)</option>
+                                <option value="6">Grape soda (6)</option>
+                                <option value="7">Aubergine (7)</option>
+                                <option value="8">Colorblind clear (8)</option>
+                                <option value="100">Vanilla nitro cola (100)</option>
+                                <option value="101">Orange creamsicle (101)</option>
+                                <option value="102">Shirley temple (102)</option>
+                                <option value="103">Earth tones (103)</option>
+                                <option value="104">Everglade green (104)</option>
+                                <option value="105">Buttered toast (105)</option>
+                                <option value="200">Dark mauve (200)</option>
+                                <option value="300">Terminal (300)</option>
+                                <option value="301">Terminal grayscale (301)</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label>Padding: <span id="padValue" class="range-value">100px</span></label>
+                            <input type="range" id="pad" min="0" max="200" value="100" oninput="updatePadValue(); renderIfAuto()">
+                        </div>
+                        <div class="option-group">
+                            <label>Scale: <span id="scaleValue" class="range-value">1.0</span></label>
+                            <input type="range" id="scale" min="0.5" max="2.0" step="0.1" value="1.0" oninput="updateScaleValue(); renderIfAuto()">
+                        </div>
+                        <div class="option-group">
+                            <div class="checkbox-group" style="margin-top: 1.5rem;">
+                                <input type="checkbox" id="sketch" onchange="renderIfAuto()">
+                                <label for="sketch">Sketch Mode</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="center" onchange="renderIfAuto()">
+                                <label for="center">Center</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="preview-wrapper">
+                    <div id="result"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stress Test Tab -->
+        <div id="stress-tab" class="tab-content">
+            <div class="stress-controls">
+                <button id="runStressTest" onclick="runStressTest()">Run Stress Test</button>
+                <span>825 requests across 4 phases</span>
+            </div>
+
+            <div id="liveMetrics" class="live-metrics" style="display: none;"></div>
+            <div id="stressStatus" class="stress-status" style="display: none;"></div>
+            <div id="phaseResults" class="phase-results"></div>
+            <div id="activityLog" class="activity-log" style="display: none;"></div>
+            <div id="summary" style="display: none;"></div>
+        </div>
+    </div>
 
     <script>
+        const examples = {
+            simple: `A -> B -> C -> D`,
+            webarch: `# Web Application Architecture
+direction: right
+
+client: Web Browser {
+  shape: person
+}
+
+loadbalancer: Load Balancer {
+  shape: hexagon
+}
+
+webserver1: Web Server 1 {
+  shape: rectangle
+}
+
+webserver2: Web Server 2 {
+  shape: rectangle
+}
+
+apiserver: API Server {
+  shape: rectangle
+}
+
+database: Database {
+  shape: cylinder
+}
+
+cache: Redis Cache {
+  shape: stored_data
+}
+
+client -> loadbalancer: HTTPS
+loadbalancer -> webserver1: HTTP
+loadbalancer -> webserver2: HTTP
+webserver1 -> apiserver: REST API
+webserver2 -> apiserver: REST API
+apiserver -> database: SQL
+apiserver -> cache: Cache queries`,
+            microservices: `# Microservices Architecture
+direction: down
+
+gateway: API Gateway {
+  shape: hexagon
+  style.fill: "#4CAF50"
+}
+
+auth: Auth Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+users: User Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+orders: Order Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+payments: Payment Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+notifications: Notification Service {
+  shape: rectangle
+  style.fill: "#2196F3"
+}
+
+msgqueue: Message Queue {
+  shape: queue
+  style.fill: "#FF9800"
+}
+
+authdb: Auth DB {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+usersdb: Users DB {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+ordersdb: Orders DB {
+  shape: cylinder
+  style.fill: "#9C27B0"
+}
+
+gateway -> auth: Authenticate
+gateway -> users: User data
+gateway -> orders: Orders
+gateway -> payments: Payments
+
+auth -> authdb: Store tokens
+users -> usersdb: User CRUD
+orders -> ordersdb: Order CRUD
+
+orders -> msgqueue: Order created event
+payments -> msgqueue: Payment processed event
+msgqueue -> notifications: Send notifications`,
+            flowchart: `# Decision Flowchart
+direction: down
+
+start: Start {shape: oval}
+input: Get Input {shape: rectangle}
+check: Is Valid? {shape: diamond}
+process: Process Data {shape: rectangle}
+save: Save to DB {shape: cylinder}
+error: Show Error {shape: rectangle}
+end: End {shape: oval}
+
+start -> input
+input -> check
+check -> process: Yes
+check -> error: No
+process -> save
+save -> end
+error -> input`,
+            network: `# Network Diagram
+direction: right
+
+internet: Internet {shape: cloud}
+firewall: Firewall {shape: hexagon}
+router: Router {shape: hexagon}
+switch1: Switch 1 {shape: rectangle}
+switch2: Switch 2 {shape: rectangle}
+server1: Server 1 {shape: cylinder}
+server2: Server 2 {shape: cylinder}
+workstation1: Workstation 1 {shape: rectangle}
+workstation2: Workstation 2 {shape: rectangle}
+
+internet -> firewall: WAN
+firewall -> router
+router -> switch1
+router -> switch2
+switch1 -> server1
+switch1 -> server2
+switch2 -> workstation1
+switch2 -> workstation2`,
+            database: `# Database Schema
+direction: right
+
+users: Users {
+  shape: sql_table
+  id: int {constraint: primary_key}
+  email: varchar
+  name: varchar
+  created_at: timestamp
+}
+
+orders: Orders {
+  shape: sql_table
+  id: int {constraint: primary_key}
+  user_id: int {constraint: foreign_key}
+  total: decimal
+  status: varchar
+  created_at: timestamp
+}
+
+items: Order Items {
+  shape: sql_table
+  id: int {constraint: primary_key}
+  order_id: int {constraint: foreign_key}
+  product_id: int {constraint: foreign_key}
+  quantity: int
+  price: decimal
+}
+
+products: Products {
+  shape: sql_table
+  id: int {constraint: primary_key}
+  name: varchar
+  price: decimal
+  stock: int
+}
+
+users.id -> orders.user_id
+orders.id -> items.order_id
+products.id -> items.product_id`
+        };
+
+        let renderTimeout = null;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tabName === 'diagram') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('diagram-tab').classList.add('active');
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('stress-tab').classList.add('active');
+            }
+        }
+
+        function loadExample() {
+            const select = document.getElementById('exampleSelect');
+            const example = examples[select.value];
+            if (example) {
+                document.getElementById('script').value = example;
+                renderIfAuto();
+            }
+        }
+
+        function updatePadValue() {
+            const pad = document.getElementById('pad').value;
+            document.getElementById('padValue').textContent = pad + 'px';
+        }
+
+        function updateScaleValue() {
+            const scale = document.getElementById('scale').value;
+            document.getElementById('scaleValue').textContent = scale;
+        }
+
+        function renderIfAuto() {
+            if (document.getElementById('autoRender').checked) {
+                // Debounce: clear previous timeout and set new one
+                if (renderTimeout) clearTimeout(renderTimeout);
+                renderTimeout = setTimeout(renderDiagram, 500);
+            }
+        }
+
+        // Setup auto-render listener on script textarea
+        document.getElementById('script').addEventListener('input', renderIfAuto);
+
         async function renderDiagram() {
             const script = document.getElementById('script').value;
             const result = document.getElementById('result');
+
+            if (!script.trim()) {
+                result.innerHTML = '<div class="loading">Enter a D2 script to render...</div>';
+                return;
+            }
+
+            result.innerHTML = '<div class="loading">Rendering...</div>';
+
+            const requestBody = {
+                script: script,
+                layout: parseInt(document.getElementById('layout').value),
+                themeId: document.getElementById('theme').value ? parseInt(document.getElementById('theme').value) : null,
+                sketch: document.getElementById('sketch').checked || null,
+                pad: parseInt(document.getElementById('pad').value),
+                scale: parseFloat(document.getElementById('scale').value),
+                center: document.getElementById('center').checked || null
+            };
+
+            // Remove null values
+            Object.keys(requestBody).forEach(key => {
+                if (requestBody[key] === null) {
+                    delete requestBody[key];
+                }
+            });
+
+            console.log('Sending request:', requestBody);
 
             try {
                 const response = await fetch('/render', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ script })
+                    body: JSON.stringify(requestBody)
                 });
 
                 if (response.ok) {
@@ -38,15 +1132,379 @@ C -> D</textarea>
                     result.innerHTML = svg;
                 } else {
                     const error = await response.json();
-                    let errorMessage = `<p class="error">Error: ${error.message}</p>`;
+                    let errorMessage = `<div class="error">`;
+                    errorMessage += `<strong>Error:</strong> ${error.message}`;
                     if (error.lineNumber && error.column) {
-                        errorMessage += `<p class="error">At line ${error.lineNumber}, column ${error.column}:</p>`;
+                        errorMessage += `<br><strong>Line ${error.lineNumber}, Column ${error.column}</strong>`;
                         errorMessage += `<div class="error-line">${error.highlightedLineParts.beforeError}<span class="error-highlight">${error.highlightedLineParts.errorPart}</span>${error.highlightedLineParts.afterError}</div>`;
                     }
+                    errorMessage += `</div>`;
                     result.innerHTML = errorMessage;
                 }
             } catch (error) {
-                result.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                result.innerHTML = `<div class="error"><strong>Error:</strong> ${error.message}</div>`;
+            }
+        }
+
+        // Initial render
+        renderDiagram();
+
+        // Stress Test Code (preserved from original)
+        let liveStats = {
+            total: 0,
+            success: 0,
+            failed: 0,
+            startTime: 0
+        };
+
+        let updateInterval = null;
+
+        function updateLiveMetrics() {
+            const elapsed = (Date.now() - liveStats.startTime) / 1000;
+            const rate = liveStats.total / elapsed;
+
+            const metricsHtml = `
+                <div class="live-metric">
+                    <div class="live-metric-value">${liveStats.total}</div>
+                    <div class="live-metric-label">Total Requests</div>
+                </div>
+                <div class="live-metric">
+                    <div class="live-metric-value">${liveStats.success}</div>
+                    <div class="live-metric-label">Successful</div>
+                </div>
+                <div class="live-metric">
+                    <div class="live-metric-value">${liveStats.failed}</div>
+                    <div class="live-metric-label">Failed</div>
+                </div>
+                <div class="live-metric">
+                    <div class="live-metric-value">${rate.toFixed(1)}</div>
+                    <div class="live-metric-label">Req/sec</div>
+                </div>
+                <div class="live-metric">
+                    <div class="live-metric-value">${elapsed.toFixed(1)}s</div>
+                    <div class="live-metric-label">Elapsed</div>
+                </div>
+            `;
+            document.getElementById('liveMetrics').innerHTML = metricsHtml;
+        }
+
+        function addActivityLog(message) {
+            const log = document.getElementById('activityLog');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'activity-log-entry';
+            entry.innerHTML = `<span class="activity-log-timestamp">[${time}]</span>${message}`;
+            log.insertBefore(entry, log.firstChild);
+
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        async function runWithConcurrencyLive(requests, concurrency, onProgress) {
+            const results = [];
+            const executing = [];
+            let completed = 0;
+
+            for (const request of requests) {
+                const promise = request().then(result => {
+                    executing.splice(executing.indexOf(promise), 1);
+
+                    liveStats.total++;
+                    if (result) {
+                        liveStats.success++;
+                    } else {
+                        liveStats.failed++;
+                    }
+
+                    completed++;
+                    if (onProgress) {
+                        onProgress(completed, result);
+                    }
+
+                    return result;
+                });
+
+                results.push(promise);
+                executing.push(promise);
+
+                if (executing.length >= concurrency) {
+                    await Promise.race(executing);
+                }
+            }
+
+            return Promise.all(results);
+        }
+
+        async function runStressTest() {
+            const button = document.getElementById('runStressTest');
+            const status = document.getElementById('stressStatus');
+            const phaseResults = document.getElementById('phaseResults');
+            const summary = document.getElementById('summary');
+
+            button.disabled = true;
+            status.style.display = 'block';
+            status.className = 'stress-status running';
+            status.textContent = 'Running stress test...';
+            phaseResults.innerHTML = '';
+            summary.style.display = 'none';
+
+            document.getElementById('liveMetrics').style.display = 'grid';
+            document.getElementById('activityLog').style.display = 'block';
+            document.getElementById('activityLog').innerHTML = '';
+
+            liveStats = {
+                total: 0,
+                success: 0,
+                failed: 0,
+                startTime: Date.now()
+            };
+
+            updateInterval = setInterval(updateLiveMetrics, 100);
+
+            addActivityLog('Starting comprehensive stress test...');
+
+            const testStartTime = Date.now();
+
+            const simpleDiagram = "A -> B -> C";
+            const mediumDiagram = `frontend: {shape: hexagon}
+backend: {shape: cylinder}
+cache: {shape: stored_data}
+frontend -> backend
+backend -> cache`;
+
+            const complexDiagram = `direction: right
+
+system: {
+  web: {
+    lb: {shape: hexagon}
+    app1: {shape: rectangle}
+    app2: {shape: rectangle}
+    app3: {shape: rectangle}
+  }
+  data: {
+    primary: {shape: cylinder}
+    replica1: {shape: cylinder}
+    replica2: {shape: cylinder}
+    cache: {shape: stored_data}
+  }
+  queue: {shape: queue}
+}
+
+user: {shape: person}
+admin: {shape: person}
+
+user -> system.web.lb
+admin -> system.web.lb
+system.web.lb -> system.web.app1
+system.web.lb -> system.web.app2
+system.web.lb -> system.web.app3
+system.web.app1 -> system.data.primary
+system.web.app2 -> system.data.primary
+system.web.app3 -> system.data.primary
+system.web.app1 -> system.data.cache
+system.web.app2 -> system.data.cache
+system.web.app3 -> system.data.cache
+system.data.primary -> system.data.replica1
+system.data.primary -> system.data.replica2
+system.web.app1 -> system.queue
+system.web.app2 -> system.queue
+system.web.app3 -> system.queue`;
+
+            const phases = [
+                { name: 'Phase 1: Warm up (simple)', diagram: simpleDiagram, count: 25 },
+                { name: 'Phase 2: Moderate load (medium)', diagram: mediumDiagram, count: 100 },
+                { name: 'Phase 3: Heavy load (complex)', diagram: complexDiagram, count: 200 },
+                { name: 'Phase 4: Sustained load (10 waves of 50)', diagram: mediumDiagram, count: 500, waves: 10 }
+            ];
+
+            const allResults = [];
+
+            try {
+                for (let phaseIndex = 0; phaseIndex < phases.length; phaseIndex++) {
+                    const phase = phases[phaseIndex];
+
+                    const card = document.createElement('div');
+                    card.className = 'phase-card running';
+                    card.id = `phase-${phaseIndex}`;
+                    card.innerHTML = `
+                        <div class="phase-header">
+                            <span class="phase-name">${phase.name}</span>
+                            <span class="phase-badge running">Running...</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="phase-stats">
+                            <div class="stat">
+                                <div class="stat-value" id="phase-${phaseIndex}-progress">0/${phase.count}</div>
+                                <div class="stat-label">Progress</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="phase-${phaseIndex}-success">0</div>
+                                <div class="stat-label">Successful</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="phase-${phaseIndex}-failed">0</div>
+                                <div class="stat-label">Failed</div>
+                            </div>
+                        </div>
+                    `;
+                    phaseResults.appendChild(card);
+
+                    status.textContent = `Running ${phase.name}...`;
+                    addActivityLog(`Starting ${phase.name} - ${phase.count} requests`);
+
+                    const phaseStart = Date.now();
+                    let phaseSuccess = 0;
+                    let phaseFailed = 0;
+
+                    const updatePhaseProgress = (completed, wasSuccessful) => {
+                        if (wasSuccessful) phaseSuccess++;
+                        else phaseFailed++;
+
+                        const progress = (completed / phase.count) * 100;
+
+                        document.getElementById(`phase-${phaseIndex}-progress`).textContent = `${completed}/${phase.count}`;
+                        document.getElementById(`phase-${phaseIndex}-success`).textContent = phaseSuccess;
+                        document.getElementById(`phase-${phaseIndex}-failed`).textContent = phaseFailed;
+
+                        card.querySelector('.progress-fill').style.width = progress + '%';
+                    };
+
+                    const requests = [];
+                    for (let i = 0; i < phase.count; i++) {
+                        requests.push(() =>
+                            fetch('/render', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ script: phase.diagram })
+                            }).then(r => r.ok).catch(() => false)
+                        );
+                    }
+
+                    if (phase.waves) {
+                        const waveSize = phase.count / phase.waves;
+                        let totalCompleted = 0;  // Track cumulative progress across all waves
+                        for (let wave = 0; wave < phase.waves; wave++) {
+                            addActivityLog(`Wave ${wave + 1}/${phase.waves} starting (${waveSize} requests)`);
+                            const waveRequests = requests.slice(wave * waveSize, (wave + 1) * waveSize);
+                            await runWithConcurrencyLive(waveRequests, 15, (completed, wasSuccessful) => {
+                                totalCompleted++;  // Increment cumulative counter
+                                updatePhaseProgress(totalCompleted, wasSuccessful);  // Use cumulative count
+                            });
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                        }
+                    } else {
+                        await runWithConcurrencyLive(requests, 15, updatePhaseProgress);
+                    }
+
+                    const phaseDuration = Date.now() - phaseStart;
+                    const successRate = (phaseSuccess * 100.0) / phase.count;
+
+                    allResults.push({
+                        name: phase.name,
+                        totalRequests: phase.count,
+                        success: phaseSuccess,
+                        failed: phaseFailed,
+                        duration: phaseDuration,
+                        successRate
+                    });
+
+                    addActivityLog(`Completed ${phase.name} - ${phaseSuccess}/${phase.count} successful (${successRate.toFixed(1)}%)`);
+
+                    card.className = 'phase-card completed';
+                    card.innerHTML = `
+                        <div class="phase-header">
+                            <span class="phase-name">${phase.name}</span>
+                            <span class="phase-badge completed">✓ Completed</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%"></div>
+                        </div>
+                        <div class="phase-stats">
+                            <div class="stat">
+                                <div class="stat-value">${phaseSuccess}/${phase.count}</div>
+                                <div class="stat-label">Successful</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${successRate.toFixed(1)}%</div>
+                                <div class="stat-label">Success Rate</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${phaseDuration}ms</div>
+                                <div class="stat-label">Duration</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value">${(phaseDuration / phase.count).toFixed(1)}ms</div>
+                                <div class="stat-label">Avg Time</div>
+                            </div>
+                        </div>
+                    `;
+
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                const totalRequests = allResults.reduce((sum, r) => sum + r.totalRequests, 0);
+                const totalSuccess = allResults.reduce((sum, r) => sum + r.success, 0);
+                const totalFailed = allResults.reduce((sum, r) => sum + r.failed, 0);
+                const totalDuration = Date.now() - testStartTime;
+                const totalSuccessRate = (totalSuccess * 100.0) / totalRequests;
+                const rating = totalSuccessRate >= 95 ? 'EXCELLENT' :
+                              totalSuccessRate >= 85 ? 'GOOD' :
+                              totalSuccessRate >= 70 ? 'ACCEPTABLE' : 'POOR';
+
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    updateInterval = null;
+                }
+
+                updateLiveMetrics();
+
+                status.className = 'stress-status success';
+                status.textContent = `✓ Stress test completed successfully!`;
+                addActivityLog(`✓ Stress test complete! ${totalSuccess}/${totalRequests} successful (${totalSuccessRate.toFixed(1)}%) - Rating: ${rating}`);
+
+                summary.style.display = 'block';
+                summary.innerHTML = `
+                    <div class="summary-card">
+                        <div class="summary-title">Test Summary</div>
+                        <div class="summary-stats">
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalRequests}</div>
+                                <div class="summary-stat-label">Total Requests</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalSuccess}</div>
+                                <div class="summary-stat-label">Successful</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalFailed}</div>
+                                <div class="summary-stat-label">Failed</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${totalSuccessRate.toFixed(1)}%</div>
+                                <div class="summary-stat-label">Success Rate</div>
+                            </div>
+                            <div class="summary-stat">
+                                <div class="summary-stat-value">${(totalDuration / 1000).toFixed(1)}s</div>
+                                <div class="summary-stat-label">Total Time</div>
+                            </div>
+                        </div>
+                        <div class="rating">${rating}</div>
+                    </div>
+                `;
+
+            } catch (error) {
+                if (updateInterval) {
+                    clearInterval(updateInterval);
+                    updateInterval = null;
+                }
+                status.className = 'stress-status error';
+                status.textContent = `Error: ${error.message}`;
+                addActivityLog(`✗ Error: ${error.message}`);
+            } finally {
+                button.disabled = false;
             }
         }
     </script>

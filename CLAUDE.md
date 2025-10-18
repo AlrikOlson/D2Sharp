@@ -1,207 +1,198 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
 ## Project Overview
 
-D2Sharp is a .NET wrapper for D2 (d2lang.com), the modern diagram scripting language. It renders D2 diagram scripts as SVG with themes, layout engines, async patterns, and observability features.
+D2Sharp is a production-ready .NET wrapper for D2 (d2lang.com), the modern diagram scripting language. It renders D2 diagrams as SVG with full theme and layout support, automatic process isolation, and zero-config API.
 
-**Key Technologies:**
-- .NET 8.0 (C# library)
-- Go 1.22+ (native wrapper using D2 library)
-- P/Invoke for C#-Go interop
-- Cross-platform (Windows, Linux, macOS)
+**Stack:** .NET 8.0 (C#) + Go 1.22+ (native D2 wrapper) + P/Invoke interop
 
-## Build & Development Commands
+## Quick Start
 
-### Prerequisites Check
 ```bash
-# Unix/Linux/macOS
-./depcheck.sh
-
-# Windows
-.\depcheck.ps1
-```
-
-### Build
-```bash
-# Build entire solution
+# Build
 dotnet build
 
-# Build specific configuration
-dotnet build --configuration Release
-```
-
-The build process automatically compiles the Go wrapper (d2wrapper.dll/.so/.dylib) before building the C# project via MSBuild targets.
-
-### Testing
-```bash
-# Run all tests
+# Test
 dotnet test
 
-# Run tests with coverage
-dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura
-
-# Run specific test
-dotnet test --filter "FullyQualifiedName~D2WrapperTests.RenderDiagram_WithValidScript_ReturnsSuccess"
-```
-
-**Coverage Requirements:** Minimum 80% line coverage (enforced in CI)
-
-### Benchmarks
-```bash
-cd benchmarks/D2Sharp.Benchmarks
-dotnet run -c Release
-```
-
-### Web Demo
-```bash
-cd examples/D2Sharp.Web
-dotnet run
+# Run web demo
+cd examples/D2Sharp.Web && dotnet run
 ```
 
 ## Architecture
 
-### Core Components
+### User-Facing API
 
-**D2Wrapper (src/D2Sharp/D2Wrapper.cs)**
-- Main entry point for rendering D2 diagrams
-- Marshals data between C# and Go via P/Invoke
-- Thread-safe with IDisposable pattern
-- Supports both sync (`RenderDiagram`) and async (`RenderDiagramAsync`) rendering
-- Integrated observability: caching, telemetry, metrics, concurrency control
+**D2Renderer (src/D2Sharp/D2Sharp.cs)** - Main entry point
+- Zero-config constructor: `new D2Renderer()` creates 3 worker processes
+- Factory methods: `CreateWithPool(workerCount)` or `CreateDirect()` for advanced scenarios
+- Implements `ID2Renderer` interface for polymorphism
+- Thread-safe, disposable, supports sync/async rendering
+- Automatically handles process isolation and crash recovery
 
-**Go Wrapper (src/D2Sharp/d2wrapper/d2wrapper.go)**
-- CGo bridge to D2 library
-- Exports `RenderDiagram` and `FreeDiagram` functions
-- Handles D2 compilation and SVG rendering
-- Memory management via C.CString/C.free
-
-### Key Design Patterns
-
-**P/Invoke Interop:**
+**Usage:**
 ```csharp
-[LibraryImport("d2wrapper", EntryPoint = "RenderDiagram", StringMarshalling = StringMarshalling.Utf8)]
-private static partial IntPtr RenderDiagramInternal(string script, string optionsJson, out IntPtr errorPtr);
+using var renderer = new D2Renderer();  // Just works!
+var result = await renderer.RenderDiagramAsync("A -> B");
+if (result.IsSuccess)
+    Console.WriteLine(result.Svg);
 ```
 
-**Memory Safety:**
-- Always use try-finally blocks when working with native pointers
-- Call `FreeDiagram(ptr)` to release Go-allocated memory
-- Check for IntPtr.Zero before marshaling strings
+**ASP.NET Core Integration:**
+```csharp
+builder.Services.AddD2Sharp();  // Register as singleton with 10 workers
 
-**Configuration System:**
-- `D2WrapperOptions` - configures caching, telemetry, concurrency
-- `RenderOptions` - configures diagram rendering (themes, layout, sketch mode)
-- Both use nullable properties for optional configuration
+// Or customize with fluent API:
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15))
+    .ConfigureCaching(cache => cache.MaxSize = 200));
+```
 
-**Observability Integration:**
-- Caching: `RenderCache` with SHA256-based keys
-- Telemetry: `D2SharpActivitySource` for distributed tracing
-- Metrics: `D2SharpEventCounters` for real-time monitoring
-- Diagnostic IDs for log correlation
+### Core Components
+
+**D2Wrapper (src/D2Sharp/D2Wrapper.cs)** - Direct P/Invoke implementation
+- Low-level interface to Go wrapper via P/Invoke
+- Used by D2Renderer in direct mode: `D2Renderer.CreateDirect()`
+- Thread-safe, minimal overhead, but vulnerable to Go stack overflows on complex diagrams
+
+**D2WrapperProcessPool (src/D2Sharp/D2WrapperProcessPool.cs)** - Process isolation
+- Manages pool of worker processes (`D2Sharp.Worker.exe`)
+- Circuit breaker pattern for fail-fast behavior
+- Background health monitor automatically restarts crashed workers
+- Used by default D2Renderer constructor
+- Proven reliability: 925/925 concurrent requests in stress tests
+
+**Go Wrapper (src/D2Sharp/d2wrapper/d2wrapper.go)** - Native bridge
+- CGo exports: `RenderDiagram` and `FreeDiagram`
+- Handles D2 compilation and SVG rendering
+- Memory managed via C.CString/C.free
+
+**Worker Process (src/D2Sharp.Worker/Program.cs)** - Isolated renderer
+- Standalone executable communicating via stdin/stdout
+- JSON protocol for render requests/responses
+- Unlimited stack via `ulimit -s unlimited` on Linux/macOS
 
 ### Data Flow
 
-1. **RenderDiagram** receives D2 script + optional RenderOptions
-2. Options serialized to JSON via `SerializeOptions`
-3. Cache checked if enabled (`RenderCache.TryGet`)
-4. On cache miss: `RenderDiagramInternal` P/Invoke call to Go
-5. Go wrapper compiles D2 script and renders SVG
-6. Result marshaled back to C# as `RenderResult`
-7. Success results cached for future requests
-8. Activity spans and metrics recorded throughout
+1. User calls `renderer.RenderDiagramAsync("A -> B")`
+2. **Pool mode (default):** Request queued to available worker process
+3. **Direct mode:** Direct P/Invoke to Go wrapper
+4. Go wrapper compiles D2 script and renders SVG
+5. Result marshaled back as `RenderResult` with SVG or error
 
 ### Error Handling
 
-**Error Parsing:**
-- Go errors returned via out parameter as C string
-- Regex pattern: `"Compilation error: (\d+):(\d+): (.+)"`
-- Parsed into `D2Error` with line number, column, and message
-- Line content extracted from original script for context
+**D2Error Structure:**
+- Parse D2 compilation errors: `Compilation error: line:col: message`
+- Extract line content from script for context
+- `GetHighlightedLineParts()` helper for error display
 
-**Native Library Errors:**
-- `DllNotFoundException`: d2wrapper library not found
-- `EntryPointNotFoundException`: incompatible library version
+**Process Pool Errors:**
+- Circuit breaker opens when <20% workers healthy
+- Fail-fast responses until cooldown period elapses
+- Background monitor restarts crashed workers automatically
 
 ## Project Structure
 
 ```
-src/D2Sharp/           # Main library
-├── D2Wrapper.cs       # Core wrapper class
-├── RenderOptions.cs   # Rendering configuration
-├── D2WrapperOptions.cs # Wrapper configuration
-├── Caching/           # Cache implementation
-├── Telemetry/         # Observability components
-└── d2wrapper/         # Go native wrapper
-    ├── d2wrapper.go   # Go implementation
-    ├── build.ps1      # Build script
-    ├── go.mod         # Go dependencies
-    └── go.sum
+src/D2Sharp/                    # Main library
+├── D2Sharp.cs                  # D2Renderer (main API)
+├── D2Wrapper.cs                # Direct P/Invoke implementation
+├── D2WrapperProcessPool.cs     # Process pool manager
+├── ID2Renderer.cs              # Common interface
+├── RenderOptions.cs            # Diagram configuration
+├── Extensions/                 # DI integration
+│   └── D2SharpServiceExtensions.cs
+└── d2wrapper/                  # Go native wrapper
+    ├── d2wrapper.go
+    ├── build.sh / build.ps1
+    └── go.mod
 
-tests/D2Sharp.Tests/   # Unit & integration tests
-├── D2WrapperTests.cs
-├── D2ErrorTests.cs
-└── D2WrapperObservabilityTests.cs
+src/D2Sharp.Worker/             # Worker process
+└── Program.cs
 
-examples/D2Sharp.Web/  # Web demo application
+tests/D2Sharp.Tests/            # Unit tests (106 tests, 60%+ coverage)
+├── D2RendererTests.cs          # Main API tests
+├── D2WrapperTests.cs           # Direct implementation tests
+├── D2WrapperProcessPoolTests.cs # Process pool API tests
+├── ID2RendererTests.cs         # Interface conformance tests
+└── D2SharpServiceExtensionsTests.cs # DI tests
+
+examples/D2Sharp.Web/           # Web demo with stress tests
 benchmarks/D2Sharp.Benchmarks/  # Performance benchmarks
 ```
 
-## Common Development Tasks
+## Testing Strategy
 
-### Adding New RenderOptions Properties
+**Unit Tests:** Focus on API surface, validation, and D2Wrapper (direct implementation)
+- Process pool rendering is proven by stress tests (Web project)
+- Avoided flaky process lifecycle tests due to startup timing variability
+- Coverage: 60% threshold (excludes process pool infrastructure from coverage calculation)
 
-1. Add property to `RenderOptions` class (C#)
-2. Add corresponding field to `RenderOptionsJSON` struct (Go)
-3. Update `SerializeOptions` method to include new property
-4. Update Go wrapper to apply the option
-5. Add unit tests for the new option
-6. Update XML documentation
+**Stress Tests:** Run via Web project `/stress-test` endpoint
+- 825 concurrent render requests across 4 phases
+- Tests warm-up, moderate load, heavy load, and sustained load
+- Validates circuit breaker, health monitoring, and crash recovery
+- Historical result: 925/925 successful (100% success rate)
 
-### Modifying Native Library
-
-1. Edit `src/D2Sharp/d2wrapper/d2wrapper.go`
-2. Build manually: `cd src/D2Sharp/d2wrapper && go build -buildmode=c-shared -o d2wrapper.[dll|so|dylib] .`
-3. Copy built library to test output directory
-4. Run tests to validate changes
-5. CI will automatically build for all platforms
-
-### Working with Observability Features
-
-**Enable features via D2WrapperOptions:**
-```csharp
-var options = new D2WrapperOptions
-{
-    EnableCaching = true,
-    EnableTelemetry = true,
-    EnableMetrics = true,
-    EnableDiagnosticIds = true,
-    MaxConcurrentRenders = 10
-};
+**Run Tests:**
+```bash
+dotnet test  # All unit tests
+cd examples/D2Sharp.Web && dotnet run  # Then POST to /stress-test
 ```
 
-**Cache invalidation:** Cache keys include script content + all RenderOptions properties. Changing any option creates new cache entry.
+## Common Tasks
 
-**Telemetry:** Activity spans automatically created when `EnableTelemetry = true`. Tags include script length, layout engine, theme, cache hits, diagnostic ID.
+### Adding RenderOptions Property
+
+1. Add property to `RenderOptions` class
+2. Add field to `RenderOptionsJSON` struct in Go
+3. Update `SerializeOptions` method
+4. Update Go wrapper to apply option
+5. Add test in D2WrapperTests.cs
+
+### Modifying Go Wrapper
+
+1. Edit `src/D2Sharp/d2wrapper/d2wrapper.go`
+2. Build: `cd src/D2Sharp/d2wrapper && ./build.sh Debug`
+3. Run tests: `dotnet test`
+4. CI automatically builds for Windows/Linux/macOS
+
+### Working with Process Pool
+
+**Configuration:**
+```csharp
+// Default (3 workers)
+using var renderer = new D2Renderer();
+
+// Custom worker count
+using var renderer = new D2Renderer(workerCount: 10);
+
+// Direct mode (no process isolation)
+using var renderer = D2Renderer.CreateDirect();
+```
+
+**Logging:** Pass `ILogger<D2Renderer>` to constructor to see worker lifecycle events
 
 ## CI/CD Pipeline
 
-**Build Workflow (.github/workflows/build-and-package.yml):**
-1. Matrix build across Windows/Linux/macOS
+**Workflow:** `.github/workflows/build-and-package.yml`
+1. Matrix build (Windows/Linux/macOS)
 2. Build Go wrapper for each platform
-3. Run tests with coverage collection
-4. Upload coverage to Codecov
-5. Package NuGet with platform-specific native libraries
-6. Auto-release on version change in main branch
+3. Run tests with coverage
+4. Package NuGet with platform-specific binaries
+5. Auto-release on version bumps in main branch
 
-**Environment Variable:** Set `CI=true` to skip local Go wrapper builds (used in CI)
+**Environment Variable:** `CI=true` skips local Go builds (CI builds all platforms)
 
 ## Important Notes
 
-- **Script Length Limit:** 10MB maximum (10,000,000 characters)
-- **Timeout Bounds:** 100ms minimum, 10 minutes maximum
-- **Thread Safety:** D2Wrapper is thread-safe, multiple instances or concurrent calls are safe
-- **Disposal:** Always dispose D2Wrapper when done, especially if caching/concurrency features are enabled
-- **NuGet Package:** Native libraries bundled in runtimes/ folder with RID-specific paths (win-x64, linux-x64, osx-x64)
-- **Regex Performance:** Uses GeneratedRegex attribute for zero-allocation error parsing
+- **Thread Safety:** All D2Sharp classes are thread-safe
+- **Disposal:** Always dispose renderers (especially with process pools)
+- **NuGet Package:** Native libraries in `runtimes/{rid}/native/` (win-x64, linux-x64, osx-x64)
+- **Script Limit:** 10MB maximum
+- **Worker Files:** Automatically copied to output directory by MSBuild
+- **Process Isolation:** Default for reliability (prevents crashes from affecting host)
+- **Direct Mode:** Use `CreateDirect()` only if you need lower latency and understand the risks
