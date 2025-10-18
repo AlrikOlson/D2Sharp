@@ -321,13 +321,14 @@ dotnet build
 ## Project Structure
 
 - `src/D2Sharp` - Main library
+- `src/D2Sharp.Abstractions` - Shared interfaces and types
+- `src/D2Sharp.Worker` - Worker process for process isolation
 - `examples/D2Sharp.Web` - Web demo application
-- `tests/D2Sharp.Tests` - Test suite
+- `tests/D2Sharp.Tests` - Unit tests
+- `tests/D2Sharp.IntegrationTests` - Integration tests
 
 ## Additional Documentation
 
-- [Observability & Telemetry](OBSERVABILITY.md) - Advanced monitoring features
-- [Architecture](ARCHITECTURE.md) - Technical implementation details
 - [Contributing](CONTRIBUTING.md) - Contribution guidelines
 
 ## Links

@@ -13,8 +13,11 @@ dotnet add package D2Sharp
 ```csharp
 using D2Sharp;
 
-var wrapper = new D2Wrapper();
-var result = wrapper.RenderDiagram("A -> B -> C");
+// Create a renderer (uses 3 worker processes by default)
+using var renderer = new D2Renderer();
+
+// Render a diagram
+var result = await renderer.RenderDiagramAsync("A -> B -> C");
 
 if (result.IsSuccess)
 {
@@ -28,13 +31,12 @@ else
 
 ## Features
 
-- Full D2 language support
-- Async/await with cancellation and timeouts
-- Thread-safe, memory-leak protected
-- Layout engines: Dagre and ELK
-- 300+ themes, sketch mode, styling options
-- Works on Windows, macOS, and Linux
-- Built-in caching, telemetry, and metrics (v0.3.0+)
+- **Zero Configuration** - Works out of the box with sensible defaults
+- **High Performance** - Built-in worker pool handles concurrent requests efficiently
+- **Full D2 Support** - All D2 features: layouts, themes, sketch mode, and more
+- **Async/Await** - Task-based async rendering with cancellation support
+- **Cross-Platform** - Windows, macOS, and Linux
+- **Production Ready** - Battle-tested with comprehensive error handling
 
 ## Rendering Options
 
@@ -42,58 +44,80 @@ else
 var options = new RenderOptions
 {
     Layout = LayoutEngine.Elk,
-    ThemeId = 1,
+    ThemeId = 303,  // C4 PlantUML theme
     Sketch = true,
     Pad = 75
 };
 
-var result = wrapper.RenderDiagram("server -> database", options);
+var result = await renderer.RenderDiagramAsync("server -> database", options);
 ```
 
-## Async Rendering
-
-```csharp
-// With timeout
-var result = await wrapper.RenderDiagramAsync(
-    script,
-    timeout: TimeSpan.FromSeconds(30)
-);
-
-// With cancellation
-var cts = new CancellationTokenSource();
-var result = await wrapper.RenderDiagramAsync(script, cancellationToken: cts.Token);
-```
+300+ themes available, including theme 303 for C4 diagrams.
 
 ## Error Handling
 
 ```csharp
-var result = wrapper.RenderDiagram("A -> ");
+var result = await renderer.RenderDiagramAsync("A -> ");  // Invalid
 
 if (!result.IsSuccess)
 {
     var error = result.Error;
     Console.WriteLine($"Line {error.LineNumber}: {error.Message}");
-    Console.WriteLine(error.LineContent);
+    Console.WriteLine($"  {error.LineContent}");
 }
 ```
 
-## Observability (v0.3.0+)
+## ASP.NET Core Integration
 
 ```csharp
-var options = new D2WrapperOptions
+// In Program.cs - Basic registration (uses 10 workers)
+builder.Services.AddD2Sharp();
+
+// With custom configuration
+builder.Services.AddD2Sharp(d2 => d2
+    .UseProcessPool(pool => pool.WithWorkerCount(15))
+    .ConfigureCaching(cache => cache.Enabled = true));
+
+// In your controller
+public class DiagramController : ControllerBase
 {
-    EnableCaching = true,
-    EnableTelemetry = true,
-    EnableMetrics = true,
-    MaxConcurrentRenders = 10
-};
+    private readonly D2Renderer _renderer;
 
-using var wrapper = new D2Wrapper(options);
-var result = wrapper.RenderDiagram("A -> B");
+    public DiagramController(D2Renderer renderer)
+    {
+        _renderer = renderer;
+    }
 
-Console.WriteLine($"From cache: {result.FromCache}");
-Console.WriteLine($"Diagnostic ID: {result.DiagnosticId}");
+    [HttpPost]
+    public async Task<IActionResult> Render([FromBody] string script)
+    {
+        var result = await _renderer.RenderDiagramAsync(script);
+        return result.IsSuccess
+            ? Content(result.Svg, "image/svg+xml")
+            : BadRequest(result.Error);
+    }
+}
 ```
+
+## Advanced Configuration
+
+### Custom Worker Count
+
+```csharp
+// For high-concurrency scenarios
+using var renderer = new D2Renderer(workerCount: 15);
+```
+
+### Direct Mode (CLI Tools)
+
+For command-line tools or single-threaded applications:
+
+```csharp
+using var renderer = D2Renderer.CreateDirect();
+var result = await renderer.RenderDiagramAsync(script);
+```
+
+Note: Direct mode is not recommended for web applications with concurrent requests.
 
 ## Requirements
 
@@ -102,8 +126,17 @@ Console.WriteLine($"Diagnostic ID: {result.DiagnosticId}");
 ## Documentation
 
 - [GitHub Repository](https://github.com/AlrikOlson/D2Sharp)
+- [Full Documentation](https://github.com/AlrikOlson/D2Sharp/blob/main/README.md)
 - [D2 Language Docs](https://d2lang.com/)
 - [Issue Tracker](https://github.com/AlrikOlson/D2Sharp/issues)
+
+## What's New in v0.4.0
+
+- **Unified API**: New `D2Renderer` class with smart defaults
+- **Process Isolation**: Worker processes prevent crashes from affecting your app
+- **ASP.NET Core DI**: Full dependency injection support with fluent configuration
+- **Theme 303 Support**: Upgraded to D2 v0.7.1 for C4 diagram themes
+- **100+ New Tests**: Comprehensive test coverage for reliability
 
 ## License
 
