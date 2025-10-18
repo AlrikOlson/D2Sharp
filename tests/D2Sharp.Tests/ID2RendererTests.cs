@@ -16,7 +16,7 @@ public class ID2RendererTests
     /// </summary>
     public static IEnumerable<object[]> GetRendererImplementations()
     {
-        yield return new object[] { "D2Wrapper", () => new D2Wrapper() };
+        yield return new object[] { () => new D2Wrapper() };
         // Note: D2WrapperProcessPool and D2Renderer use worker processes that need warmup time,
         // causing flaky tests. They have dedicated test files instead.
     }
@@ -34,7 +34,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void RenderDiagram_WithValidScript_ReturnsSuccess(string name, Func<ID2Renderer> factory)
+    public void RenderDiagram_WithValidScript_ReturnsSuccess(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -45,7 +45,7 @@ public class ID2RendererTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.True(result.IsSuccess, $"{name} should return success");
+        Assert.True(result.IsSuccess, "Should return success");
         Assert.Null(result.Error);
         Assert.NotNull(result.Svg);
         Assert.Contains("<svg", result.Svg);
@@ -64,7 +64,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void RenderDiagram_WithInvalidScript_ReturnsError(string name, Func<ID2Renderer> factory)
+    public void RenderDiagram_WithInvalidScript_ReturnsError(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -75,7 +75,7 @@ public class ID2RendererTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.False(result.IsSuccess, $"{name} should return error for invalid script");
+        Assert.False(result.IsSuccess, "Should return error for invalid script");
         Assert.Null(result.Svg);
         Assert.NotNull(result.Error);
         Assert.NotEmpty(result.Error.Message);
@@ -83,7 +83,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void RenderDiagram_WithRenderOptions_ReturnsSuccess(string name, Func<ID2Renderer> factory)
+    public void RenderDiagram_WithRenderOptions_ReturnsSuccess(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -99,13 +99,13 @@ public class ID2RendererTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.True(result.IsSuccess, $"{name} should handle render options");
+        Assert.True(result.IsSuccess, "Should handle render options");
         Assert.NotNull(result.Svg);
     }
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public async Task RenderDiagramAsync_WithValidScript_ReturnsSuccess(string name, Func<ID2Renderer> factory)
+    public async Task RenderDiagramAsync_WithValidScript_ReturnsSuccess(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -116,7 +116,7 @@ public class ID2RendererTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.True(result.IsSuccess, $"{name} async should return success");
+        Assert.True(result.IsSuccess, "Async should return success");
         Assert.Null(result.Error);
         Assert.NotNull(result.Svg);
         Assert.Contains("<svg", result.Svg);
@@ -136,7 +136,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public async Task RenderDiagramAsync_WithInvalidScript_ReturnsError(string name, Func<ID2Renderer> factory)
+    public async Task RenderDiagramAsync_WithInvalidScript_ReturnsError(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -147,7 +147,7 @@ public class ID2RendererTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.False(result.IsSuccess, $"{name} async should return error for invalid script");
+        Assert.False(result.IsSuccess, "Async should return error for invalid script");
         Assert.Null(result.Svg);
         Assert.NotNull(result.Error);
         Assert.NotEmpty(result.Error.Message);
@@ -181,7 +181,7 @@ public class ID2RendererTests
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public void RenderDiagram_MultipleSequentialCalls_AllSucceed(string name, Func<ID2Renderer> factory)
+    public void RenderDiagram_MultipleSequentialCalls_AllSucceed(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -196,14 +196,14 @@ public class ID2RendererTests
         foreach (var script in scripts)
         {
             var result = renderer.RenderDiagram(script);
-            Assert.True(result.IsSuccess, $"{name} should handle sequential calls");
+            Assert.True(result.IsSuccess, "Should handle sequential calls");
             Assert.NotNull(result.Svg);
         }
     }
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public async Task RenderDiagramAsync_MultipleSequentialCalls_AllSucceed(string name, Func<ID2Renderer> factory)
+    public async Task RenderDiagramAsync_MultipleSequentialCalls_AllSucceed(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -218,14 +218,14 @@ public class ID2RendererTests
         foreach (var script in scripts)
         {
             var result = await renderer.RenderDiagramAsync(script);
-            Assert.True(result.IsSuccess, $"{name} async should handle sequential calls");
+            Assert.True(result.IsSuccess, "Async should handle sequential calls");
             Assert.NotNull(result.Svg);
         }
     }
 
     [Theory]
     [MemberData(nameof(GetRendererImplementations))]
-    public async Task RenderDiagramAsync_MultipleConcurrentCalls_AllSucceed(string name, Func<ID2Renderer> factory)
+    public async Task RenderDiagramAsync_MultipleConcurrentCalls_AllSucceed(Func<ID2Renderer> factory)
     {
         // Arrange
         using var renderer = factory();
@@ -241,7 +241,7 @@ public class ID2RendererTests
         // Assert
         Assert.All(results, result =>
         {
-            Assert.True(result.IsSuccess, $"{name} should handle concurrent calls");
+            Assert.True(result.IsSuccess, "Should handle concurrent calls");
             Assert.NotNull(result.Svg);
         });
     }
