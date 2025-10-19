@@ -137,12 +137,22 @@ public class D2WrapperObservabilityTests
         using var wrapper = new D2Wrapper(options);
         var script = "Server -> Database";
 
+        // Clear any existing activity to avoid capturing test infrastructure activities
+        Activity.Current = null;
+
         Activity? capturedActivity = null;
         using var listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == "D2Sharp",
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-            ActivityStarted = activity => capturedActivity = activity
+            ActivityStarted = activity =>
+            {
+                // Only capture activities with the expected name to avoid race conditions
+                if (activity.OperationName == "RenderDiagram")
+                {
+                    capturedActivity = activity;
+                }
+            }
         };
         ActivitySource.AddActivityListener(listener);
 

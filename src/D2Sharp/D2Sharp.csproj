@@ -97,15 +97,18 @@
     </ItemGroup>
 
     <!-- Copy worker executable to output directory (process isolation) -->
-    <!-- Worker should be built as part of solution build, so just copy it -->
     <!-- IMPORTANT: Worker runs as standalone process, so needs all dependencies even if consuming project has them in framework -->
     <Target Name="CopyWorkerExecutable" AfterTargets="Build">
+        <!-- Ensure Worker is restored and built before copying (avoids circular reference by using MSBuild task instead of ProjectReference) -->
+        <MSBuild Projects="$(MSBuildThisFileDirectory)../D2Sharp.Worker/D2Sharp.Worker.csproj"
+                 Targets="Restore;Build"
+                 Properties="Configuration=$(Configuration)" />
         <ItemGroup>
-            <WorkerFiles Include="$(MSBuildThisFileDirectory)..\D2Sharp.Worker\bin\$(Configuration)\net8.0\**\*.*"/>
+            <WorkerFiles Include="$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/**/*.*"/>
         </ItemGroup>
         <!-- Copy all worker files, forcing overwrite to ensure ASP.NET Core apps get framework dependencies -->
         <Copy SourceFiles="@(WorkerFiles)" DestinationFolder="$(OutputPath)%(RecursiveDir)" OverwriteReadOnlyFiles="true" Condition="'@(WorkerFiles)' != ''" />
-        <Warning Text="D2Sharp.Worker not found at $(MSBuildThisFileDirectory)..\D2Sharp.Worker\bin\$(Configuration)\net8.0\. Process isolation will not be available. Build the solution to include the worker." Condition="'@(WorkerFiles)' == ''" />
+        <Warning Text="D2Sharp.Worker not found at $(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/. Process isolation will not be available. Build the solution to include the worker." Condition="'@(WorkerFiles)' == ''" />
     </Target>
 
     <!-- Include worker files as content so they're copied to consuming projects -->

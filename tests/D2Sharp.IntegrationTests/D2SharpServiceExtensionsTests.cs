@@ -1,3 +1,4 @@
+using D2Sharp.Builders;
 using D2Sharp.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -87,7 +88,7 @@ public class D2SharpServiceExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddD2SharpDirect();
+        services.AddD2Sharp(d2 => d2.UseDirect());
         var provider = services.BuildServiceProvider();
 
         // Assert
@@ -102,12 +103,14 @@ public class D2SharpServiceExtensionsTests
         var services = new ServiceCollection();
 
         // Act
-        services.AddD2SharpDirect(options =>
-        {
-            options.Caching.Enabled = false;
-            options.Telemetry.EnableTracing = false;
-            options.Telemetry.EnableMetrics = false;
-        });
+        services.AddD2Sharp(d2 => d2
+            .UseDirect()
+            .ConfigureCaching(cache => cache.Enabled = false)
+            .ConfigureTelemetry(telemetry =>
+            {
+                telemetry.EnableTracing = false;
+                telemetry.EnableMetrics = false;
+            }));
         var provider = services.BuildServiceProvider();
 
         // Assert
