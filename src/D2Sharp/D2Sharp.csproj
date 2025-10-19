@@ -15,10 +15,10 @@
         <InternalsVisibleTo>D2Sharp.Benchmarks</InternalsVisibleTo>
 
         <!-- Version information -->
-        <VersionPrefix>0.4.0</VersionPrefix>
+        <VersionPrefix>0.4.1</VersionPrefix>
         <VersionSuffix></VersionSuffix>
-        <AssemblyVersion>0.4.0.0</AssemblyVersion>
-        <FileVersion>0.4.0.0</FileVersion>
+        <AssemblyVersion>0.4.1.0</AssemblyVersion>
+        <FileVersion>0.4.1.0</FileVersion>
         <InformationalVersion>$(VersionPrefix)</InformationalVersion>
 
         <!-- Package metadata -->
@@ -82,10 +82,6 @@
             <PackagePath>lib/net8.0</PackagePath>
             <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         </None>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\D2Sharp.Abstractions\D2Sharp.Abstractions.csproj" />
     </ItemGroup>
 
     <ItemGroup>

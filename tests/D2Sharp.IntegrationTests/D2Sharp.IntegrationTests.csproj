@@ -41,7 +41,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\D2Sharp\D2Sharp.csproj" />
-    <ProjectReference Include="..\..\src\D2Sharp.Abstractions\D2Sharp.Abstractions.csproj" />
     <ProjectReference Include="..\..\src\D2Sharp.Worker\D2Sharp.Worker.csproj" />
   </ItemGroup>
 
