@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-10-18
+
+### Fixed
+- **NuGet packaging**: Fixed broken D2Sharp.Abstractions dependency in v0.4.0
+  - Merged D2Sharp.Abstractions project into D2Sharp to eliminate packaging complexity
+  - Removed external NuGet dependency that caused NU1101 errors when installing v0.4.0
+  - All types previously in D2Sharp.Abstractions are now part of the main D2Sharp package
+  - Users of v0.4.0 should upgrade to v0.4.1 immediately
+
+### Added
+- **NuGet example project**: Added `examples/D2Sharp.NuGetExample` demonstrating usage from published NuGet package
+  - Simple console application with 5 comprehensive examples
+  - Shows basic rendering, custom styling, complex layouts, error handling, and worker pool configuration
+  - Includes detailed README with quick start guide
+  - Note: Project files included but not in solution until v0.4.1 is published
+
+### Changed
+- **Project structure**: D2Sharp.Abstractions project merged into D2Sharp
+  - No API changes - all types remain in the same namespace
+  - Simplifies project structure and eliminates packaging issues
+
 ## [0.4.0] - 2025-10-18
 
 ### Breaking Changes
