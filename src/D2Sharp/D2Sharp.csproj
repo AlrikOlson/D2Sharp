@@ -75,14 +75,19 @@
         <NativeLibName>d2wrapper$(NativeLibExtension)</NativeLibName>
     </PropertyGroup>
 
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(NativeLibName)" Link="$(NativeLibName)">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Pack>true</Pack>
-            <PackagePath>lib/net8.0</PackagePath>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-        </None>
-    </ItemGroup>
+    <!-- Include native library dynamically after it's built -->
+    <Target Name="IncludeNativeLibrary" AfterTargets="BuildD2Wrapper" BeforeTargets="BeforeBuild">
+        <ItemGroup>
+            <Content Include="$(OutputPath)$(NativeLibName)">
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <Pack>true</Pack>
+                <PackagePath>lib/net8.0</PackagePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+                <Link>$(NativeLibName)</Link>
+                <Visible>false</Visible>
+            </Content>
+        </ItemGroup>
+    </Target>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0"/>
