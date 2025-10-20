@@ -85,10 +85,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1"/>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2"/>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.10"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.10"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10"/>
+        <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.10"/>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
@@ -109,6 +109,7 @@
 
     <!-- Include worker files as content so they're copied to consuming projects -->
     <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.10" />
         <None Include="$(OutputPath)D2Sharp.Worker*" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" Visible="false">
             <Pack>true</Pack>
             <PackagePath>lib/net8.0</PackagePath>
