@@ -102,3 +102,5 @@ d2wrapper.h
 appsettings.*.json
 
 tools/D2Sharp.DiagramCLI/output
+# Generated D2 diagram outputs
+examples/D2Sharp.NuGetExample/*.svg
