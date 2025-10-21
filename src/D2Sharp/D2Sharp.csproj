@@ -97,59 +97,25 @@
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
-    <!-- Reference Worker files directly from Worker's output directory -->
-    <!-- This avoids circular dependencies and ensures files are propagated to consuming projects -->
-    <!-- Worker must be built as part of solution build before D2Sharp -->
-    <PropertyGroup>
-        <_WorkerSourcePath>$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/</_WorkerSourcePath>
-    </PropertyGroup>
+    <!-- Import D2Sharp.targets for local development with project references -->
+    <!-- This same file is also packaged and auto-imported by NuGet for package consumers -->
+    <Import Project="D2Sharp.targets" />
 
+    <!-- Package the .targets file and Worker files for NuGet -->
     <ItemGroup>
-        <!-- Core Worker executable and runtime files -->
-        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker')">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>D2Sharp.Worker</Link>
-            <Visible>false</Visible>
-            <Pack>true</Pack>
-            <PackagePath>lib/net8.0</PackagePath>
-        </Content>
-        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.dll" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.dll')">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>D2Sharp.Worker.dll</Link>
-            <Visible>false</Visible>
-            <Pack>true</Pack>
-            <PackagePath>lib/net8.0</PackagePath>
-        </Content>
-        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.deps.json" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.deps.json')">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>D2Sharp.Worker.deps.json</Link>
-            <Visible>false</Visible>
-            <Pack>true</Pack>
-            <PackagePath>lib/net8.0</PackagePath>
-        </Content>
-        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.runtimeconfig.json" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.runtimeconfig.json')">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>D2Sharp.Worker.runtimeconfig.json</Link>
-            <Visible>false</Visible>
-            <Pack>true</Pack>
-            <PackagePath>lib/net8.0</PackagePath>
-        </Content>
-        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.pdb" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.pdb')">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>D2Sharp.Worker.pdb</Link>
-            <Visible>false</Visible>
-            <Pack>true</Pack>
-            <PackagePath>lib/net8.0</PackagePath>
-        </Content>
+        <!-- Include .targets file in build/ folder so NuGet auto-imports it -->
+        <None Include="D2Sharp.targets" Pack="true" PackagePath="build/D2Sharp.targets" />
 
-        <!-- Worker dependencies that may not be in consuming project's framework -->
-        <Content Include="$(_WorkerSourcePath)Microsoft.Extensions.*.dll">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Link>%(Filename)%(Extension)</Link>
-            <Visible>false</Visible>
-            <Pack>true</Pack>
-            <PackagePath>lib/net8.0</PackagePath>
-        </Content>
+        <!-- Include Worker files in build/ folder so .targets can reference them -->
+        <None Include="$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker*"
+              Pack="true"
+              PackagePath="build/D2Sharp.Worker"
+              Condition="Exists('$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker')" />
+
+        <None Include="$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/Microsoft.Extensions.*.dll"
+              Pack="true"
+              PackagePath="build/D2Sharp.Worker"
+              Condition="Exists('$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0')" />
     </ItemGroup>
 
     <PropertyGroup>
