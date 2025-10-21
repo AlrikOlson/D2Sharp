@@ -172,6 +172,16 @@ jobs:
         cp artifacts/d2wrapper-ubuntu-latest/d2wrapper.so src/D2Sharp/runtimes/linux-x64/native/
         cp artifacts/d2wrapper-macos-latest/d2wrapper.dylib src/D2Sharp/runtimes/osx-x64/native/
 
+    - name: Setup Go (for Worker build)
+      if: steps.check_changes.outputs.run_package == 'true'
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Build Worker project
+      if: steps.check_changes.outputs.run_package == 'true'
+      run: dotnet build src/D2Sharp.Worker/D2Sharp.Worker.csproj --configuration Release
+
     - name: Pack NuGet package
       if: steps.check_changes.outputs.run_package == 'true'
       run: dotnet pack src/D2Sharp/D2Sharp.csproj --configuration Release --output .
