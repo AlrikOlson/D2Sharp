@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2025-10-21
+
+### Fixed
+- **NuGet packaging**: Fixed d2wrapper native library not being copied to consuming projects (v0.4.3 regression)
+  - Modified `IncludeNativeLibrary` target in D2Sharp.csproj to copy built native library to `runtimes/{rid}/native/` directory during local builds
+  - Added `CopyD2SharpNativeLibrary` target to D2Sharp.targets to automatically copy native library from package to consuming project's bin/
+  - Targets file uses relative paths (`../runtimes/{rid}/native/`) to locate native library in NuGet package cache
+  - Automatically detects platform (Windows/Linux/macOS) and handles correct file extension (.dll/.so/.dylib)
+  - Fallback to project reference path (`../d2wrapper/`) for local development with project references
+  - Package now includes native library in both `lib/net8.0/` (backwards compat) and `runtimes/{rid}/native/` (automatic copy)
+  - Verified all examples run successfully and rendering works correctly
+  - Users of v0.4.1, v0.4.2, or v0.4.3 should upgrade to v0.4.4 for working rendering
+
 ## [0.4.3] - 2025-10-21
 
 ### Fixed
@@ -15,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Rewrote D2Sharp.targets to use Copy task instead of Content items for reliable file copying
   - Fixed MSBuild ".." path error during NuGet restore by moving path resolution into build target
   - Verified all 13 Worker files now copy correctly from NuGet package
-  - Users of v0.4.1 or v0.4.2 should upgrade to v0.4.3 for working process isolation
+  - NOTE: v0.4.3 package is broken - Worker files copy but native library doesn't. Use v0.4.4 instead
 
 ## [0.4.2] - 2025-10-21
 
@@ -388,7 +401,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.0...v0.4.1

@@ -35,4 +35,41 @@
     <!-- Warn if Worker files were not found -->
     <Warning Condition="'$(_D2SharpWorkerSourcePath)' == ''" Text="D2Sharp.Worker executable not found. Process isolation will not be available. Run 'dotnet build' at solution level or ensure Worker project is built." />
   </Target>
+
+  <!-- Copy d2wrapper native library to consuming project's output directory -->
+  <Target Name="CopyD2SharpNativeLibrary" AfterTargets="Build">
+    <PropertyGroup>
+      <!-- Determine native library extension based on OS -->
+      <_D2WrapperExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.dll</_D2WrapperExtension>
+      <_D2WrapperExtension Condition="$([MSBuild]::IsOSPlatform('OSX'))">.dylib</_D2WrapperExtension>
+      <_D2WrapperExtension Condition="$([MSBuild]::IsOSPlatform('Linux'))">.so</_D2WrapperExtension>
+      <_D2WrapperLibName>d2wrapper$(_D2WrapperExtension)</_D2WrapperLibName>
+
+      <!-- For NuGet package: try lib/net8.0 first (where D2Sharp packages it) -->
+      <_D2WrapperNuGetLibPath>$(MSBuildThisFileDirectory)..\lib\net8.0\$(_D2WrapperLibName)</_D2WrapperNuGetLibPath>
+
+      <!-- Fallback: check runtimes/{rid}/native/ in case of multi-platform packaging -->
+      <_D2WrapperRID Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</_D2WrapperRID>
+      <_D2WrapperRID Condition="$([MSBuild]::IsOSPlatform('OSX'))">osx-x64</_D2WrapperRID>
+      <_D2WrapperRID Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux-x64</_D2WrapperRID>
+      <_D2WrapperNuGetRuntimePath>$(MSBuildThisFileDirectory)..\runtimes\$(_D2WrapperRID)\native\$(_D2WrapperLibName)</_D2WrapperNuGetRuntimePath>
+
+      <!-- For project references: native library is in ../d2wrapper/ -->
+      <_D2WrapperProjectPath>$(MSBuildThisFileDirectory)..\d2wrapper\$(_D2WrapperLibName)</_D2WrapperProjectPath>
+
+      <!-- Choose the path that exists (try lib/net8.0 first, then runtimes, then project) -->
+      <_D2WrapperSourcePath Condition="Exists('$(_D2WrapperNuGetLibPath)')">$(_D2WrapperNuGetLibPath)</_D2WrapperSourcePath>
+      <_D2WrapperSourcePath Condition="'$(_D2WrapperSourcePath)' == '' AND Exists('$(_D2WrapperNuGetRuntimePath)')">$(_D2WrapperNuGetRuntimePath)</_D2WrapperSourcePath>
+      <_D2WrapperSourcePath Condition="'$(_D2WrapperSourcePath)' == '' AND Exists('$(_D2WrapperProjectPath)')">$(_D2WrapperProjectPath)</_D2WrapperSourcePath>
+    </PropertyGroup>
+
+    <!-- Copy native library if found -->
+    <Copy Condition="'$(_D2WrapperSourcePath)' != ''"
+          SourceFiles="$(_D2WrapperSourcePath)"
+          DestinationFolder="$(OutputPath)"
+          SkipUnchangedFiles="true" />
+
+    <!-- Warn if native library was not found -->
+    <Warning Condition="'$(_D2WrapperSourcePath)' == ''" Text="d2wrapper native library not found. D2Sharp rendering will not work. Ensure the native library is built and packaged correctly." />
+  </Target>
 </Project>
