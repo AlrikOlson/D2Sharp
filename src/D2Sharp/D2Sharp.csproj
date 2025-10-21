@@ -88,7 +88,8 @@
         <MakeDir Directories="$(MSBuildProjectDirectory)/runtimes/$(_NativeLibRID)/native" />
         <Copy SourceFiles="$(OutputPath)$(NativeLibName)"
               DestinationFolder="$(MSBuildProjectDirectory)/runtimes/$(_NativeLibRID)/native/"
-              SkipUnchangedFiles="true" />
+              SkipUnchangedFiles="true"
+              Condition="Exists('$(OutputPath)$(NativeLibName)')" />
 
         <ItemGroup>
             <!-- Package in lib/net8.0 for backwards compatibility and direct use -->
