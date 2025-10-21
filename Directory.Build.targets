@@ -27,7 +27,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker" />
+      <!-- Worker launcher only exists on Linux/macOS, not Windows -->
+      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker"
+                           Condition="Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker')" />
       <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.dll" />
       <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.deps.json" />
       <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.runtimeconfig.json" />
