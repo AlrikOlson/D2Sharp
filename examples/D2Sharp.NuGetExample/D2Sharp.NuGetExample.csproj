@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="D2Sharp" Version="0.4.3" />
+        <PackageReference Include="D2Sharp" Version="0.4.4" />
     </ItemGroup>
 
 </Project>

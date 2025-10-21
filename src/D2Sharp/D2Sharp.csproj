@@ -15,10 +15,10 @@
         <InternalsVisibleTo>D2Sharp.Benchmarks</InternalsVisibleTo>
 
         <!-- Version information -->
-        <VersionPrefix>0.4.3</VersionPrefix>
+        <VersionPrefix>0.4.4</VersionPrefix>
         <VersionSuffix></VersionSuffix>
-        <AssemblyVersion>0.4.3.0</AssemblyVersion>
-        <FileVersion>0.4.3.0</FileVersion>
+        <AssemblyVersion>0.4.4.0</AssemblyVersion>
+        <FileVersion>0.4.4.0</FileVersion>
         <InformationalVersion>$(VersionPrefix)</InformationalVersion>
 
         <!-- Package metadata -->
@@ -77,7 +77,22 @@
 
     <!-- Include native library dynamically after it's built -->
     <Target Name="IncludeNativeLibrary" AfterTargets="BuildD2Wrapper" BeforeTargets="BeforeBuild">
+        <PropertyGroup>
+            <!-- Determine RID based on OS -->
+            <_NativeLibRID Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</_NativeLibRID>
+            <_NativeLibRID Condition="$([MSBuild]::IsOSPlatform('OSX'))">osx-x64</_NativeLibRID>
+            <_NativeLibRID Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux-x64</_NativeLibRID>
+        </PropertyGroup>
+
+        <!-- Copy native library to runtimes/{rid}/native/ for NuGet packaging -->
+        <MakeDir Directories="$(MSBuildProjectDirectory)/runtimes/$(_NativeLibRID)/native" />
+        <Copy SourceFiles="$(OutputPath)$(NativeLibName)"
+              DestinationFolder="$(MSBuildProjectDirectory)/runtimes/$(_NativeLibRID)/native/"
+              SkipUnchangedFiles="true"
+              Condition="Exists('$(OutputPath)$(NativeLibName)')" />
+
         <ItemGroup>
+            <!-- Package in lib/net8.0 for backwards compatibility and direct use -->
             <Content Include="$(OutputPath)$(NativeLibName)">
                 <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
                 <Pack>true</Pack>
