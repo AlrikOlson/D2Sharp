@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2025-10-21
+
+### Fixed
+- **NuGet packaging**: Fixed Worker files actually being copied to consuming projects
+  - Added trailing slashes to `PackagePath` in D2Sharp.csproj to ensure files pack into directory
+  - Rewrote D2Sharp.targets to use Copy task instead of Content items for reliable file copying
+  - Fixed MSBuild ".." path error during NuGet restore by moving path resolution into build target
+  - Verified all 13 Worker files now copy correctly from NuGet package
+  - Users of v0.4.1 or v0.4.2 should upgrade to v0.4.3 for working process isolation
+
 ## [0.4.2] - 2025-10-21
 
 ### Fixed
@@ -14,8 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed D2Sharp.csproj packaging condition from launcher check to .dll check (cross-platform compatible)
   - Added Worker build steps to CI workflow before `dotnet pack`
   - Package now includes all 13 Worker files in `build/D2Sharp.Worker/` directory
-  - Fixes "Worker executable not found" error when using v0.4.1 package
-  - Users of v0.4.1 should upgrade to v0.4.2 for process isolation support
+  - NOTE: v0.4.2 package is broken - files included but not copied. Use v0.4.3 instead
 
 ## [0.4.1] - 2025-10-18
 
@@ -379,7 +388,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go wrapper for D2 library
 - .NET 8.0 library
 
-[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/AlrikOlson/D2Sharp/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/AlrikOlson/D2Sharp/compare/v0.3.1...v0.4.0
