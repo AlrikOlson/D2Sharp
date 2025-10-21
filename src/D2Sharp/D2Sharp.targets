@@ -55,8 +55,10 @@
     </Content>
   </ItemGroup>
 
-  <!-- Warn if Worker files are missing (e.g., after dotnet clean with project references) -->
-  <Target Name="WarnIfD2SharpWorkerMissing" BeforeTargets="Build" Condition="!Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker') AND !Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker.dll')">
-    <Warning Text="D2Sharp.Worker executable not found at $(_D2SharpWorkerSourcePath). Process isolation will not be available. Run 'dotnet build' at solution level or build src/D2Sharp.Worker manually." />
+  <!-- Warn if Worker files are missing (e.g., in NuGet package context or after clean) -->
+  <Target Name="WarnIfD2SharpWorkerMissing"
+          BeforeTargets="Build"
+          Condition="!Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker') AND !Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker.dll')">
+    <Warning Text="D2Sharp.Worker executable not found. Process isolation will not be available. Run 'dotnet build' at solution level or ensure Worker project is built." />
   </Target>
 </Project>

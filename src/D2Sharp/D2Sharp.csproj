@@ -97,6 +97,7 @@
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
+
     <!-- Import D2Sharp.targets for local development with project references -->
     <!-- This same file is also packaged and auto-imported by NuGet for package consumers -->
     <Import Project="D2Sharp.targets" />
