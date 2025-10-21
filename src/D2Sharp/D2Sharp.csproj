@@ -120,6 +120,7 @@
     <!-- Package the .targets file and Worker files for NuGet -->
     <ItemGroup>
         <!-- Include .targets file in build/ folder so NuGet auto-imports it -->
+        <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.10" />
         <None Include="D2Sharp.targets" Pack="true" PackagePath="build/D2Sharp.targets" />
 
         <!-- Include Worker files in build/ folder so .targets can reference them -->
