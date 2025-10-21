@@ -66,7 +66,11 @@ public class D2WrapperProcessPool : ID2Renderer
 
         if (!File.Exists(_workerPath) && !File.Exists(_workerPath + ".dll"))
         {
-            throw new FileNotFoundException($"Worker executable not found at {_workerPath}");
+            throw new FileNotFoundException(
+                $"Worker executable not found at {_workerPath}. " +
+                "This usually happens after 'dotnet clean' or when building individual projects. " +
+                "Fix: Run 'dotnet build' at the solution level, or build the Worker project first with 'dotnet build src/D2Sharp.Worker'. " +
+                "Alternatively, use D2Renderer.CreateDirect() which doesn't require the worker process.");
         }
 
         _workers = new List<WorkerInstance>();

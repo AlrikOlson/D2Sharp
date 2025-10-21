@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    This targets file is automatically imported by NuGet into consuming projects.
+    It copies D2Sharp.Worker files from the package to the consuming project's output directory.
+
+    For local development with project references, this file is also imported by D2Sharp.csproj.
+  -->
+
+  <PropertyGroup>
+    <!-- Locate Worker files based on context -->
+    <!-- For project references: D2Sharp.targets is in src/D2Sharp/, Worker is in src/D2Sharp.Worker/bin/... -->
+    <!-- For NuGet package: Worker files are in build/D2Sharp.Worker/ -->
+    <_D2SharpWorkerSourcePath Condition="Exists('$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker')">$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/</_D2SharpWorkerSourcePath>
+    <_D2SharpWorkerSourcePath Condition="'$(_D2SharpWorkerSourcePath)' == '' AND Exists('$(MSBuildThisFileDirectory)D2Sharp.Worker/D2Sharp.Worker')">$(MSBuildThisFileDirectory)D2Sharp.Worker/</_D2SharpWorkerSourcePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core Worker executable and runtime files -->
+    <Content Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker" Condition="Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker')">
+      <Link>D2Sharp.Worker</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+
+    <Content Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.dll" Condition="Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker.dll')">
+      <Link>D2Sharp.Worker.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+
+    <Content Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.deps.json" Condition="Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker.deps.json')">
+      <Link>D2Sharp.Worker.deps.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+
+    <Content Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.runtimeconfig.json" Condition="Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker.runtimeconfig.json')">
+      <Link>D2Sharp.Worker.runtimeconfig.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+
+    <Content Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.pdb" Condition="Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker.pdb')">
+      <Link>D2Sharp.Worker.pdb</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+
+    <!-- Worker dependencies that might not be in consuming project's framework -->
+    <Content Include="$(_D2SharpWorkerSourcePath)Microsoft.Extensions.*.dll">
+      <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+
+  <!-- Warn if Worker files are missing (e.g., in NuGet package context or after clean) -->
+  <Target Name="WarnIfD2SharpWorkerMissing"
+          BeforeTargets="Build"
+          Condition="!Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker') AND !Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker.dll')">
+    <Warning Text="D2Sharp.Worker executable not found. Process isolation will not be available. Run 'dotnet build' at solution level or ensure Worker project is built." />
+  </Target>
+</Project>

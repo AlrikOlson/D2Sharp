@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    This Directory.Build.targets file is automatically imported by MSBuild into ALL projects in the solution.
+    It ensures D2Sharp.Worker is built before any consuming project builds (e.g., D2Sharp.Web, tests, benchmarks).
+
+    This solves the "Worker files missing after dotnet clean" issue when using F5 debug in VS Code,
+    which builds individual projects rather than the whole solution.
+  -->
+
+  <!-- Build Worker if it's missing and we're not building D2Sharp or Worker itself -->
+  <Target Name="EnsureD2SharpWorkerIsBuilt"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(MSBuildProjectName)' != 'D2Sharp' AND '$(MSBuildProjectName)' != 'D2Sharp.Worker' AND Exists('$(MSBuildThisFileDirectory)src/D2Sharp.Worker/D2Sharp.Worker.csproj') AND !Exists('$(MSBuildThisFileDirectory)src/D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker.dll')">
+    <Message Text="D2Sharp.Worker not found - building it now to enable process isolation..." Importance="high" />
+    <MSBuild Projects="$(MSBuildThisFileDirectory)src/D2Sharp.Worker/D2Sharp.Worker.csproj"
+             Properties="Configuration=$(Configuration)"
+             Targets="Build" />
+  </Target>
+
+  <!-- Copy Worker files to consuming projects (not D2Sharp or Worker itself) -->
+  <Target Name="CopyD2SharpWorkerFiles"
+          AfterTargets="Build"
+          Condition="'$(MSBuildProjectName)' != 'D2Sharp' AND '$(MSBuildProjectName)' != 'D2Sharp.Worker' AND Exists('$(MSBuildThisFileDirectory)src/D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker.dll')">
+    <PropertyGroup>
+      <_D2SharpWorkerSourcePath>$(MSBuildThisFileDirectory)src/D2Sharp.Worker/bin/$(Configuration)/net8.0/</_D2SharpWorkerSourcePath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <!-- Worker launcher only exists on Linux/macOS, not Windows -->
+      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker"
+                           Condition="Exists('$(_D2SharpWorkerSourcePath)D2Sharp.Worker')" />
+      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.dll" />
+      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.deps.json" />
+      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.runtimeconfig.json" />
+      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)D2Sharp.Worker.pdb" />
+      <_D2SharpWorkerFiles Include="$(_D2SharpWorkerSourcePath)Microsoft.Extensions.*.dll" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_D2SharpWorkerFiles)"
+          DestinationFolder="$(OutputPath)"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>
