@@ -97,28 +97,59 @@
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
-    <!-- Copy worker executable to output directory (process isolation) -->
-    <!-- IMPORTANT: Worker runs as standalone process, so needs all dependencies even if consuming project has them in framework -->
-    <Target Name="CopyWorkerExecutable" AfterTargets="Build">
-        <!-- Ensure Worker is restored and built before copying (avoids circular reference by using MSBuild task instead of ProjectReference) -->
-        <MSBuild Projects="$(MSBuildThisFileDirectory)../D2Sharp.Worker/D2Sharp.Worker.csproj"
-                 Targets="Restore;Build"
-                 Properties="Configuration=$(Configuration)" />
-        <ItemGroup>
-            <WorkerFiles Include="$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/**/*.*"/>
-        </ItemGroup>
-        <!-- Copy all worker files, forcing overwrite to ensure ASP.NET Core apps get framework dependencies -->
-        <Copy SourceFiles="@(WorkerFiles)" DestinationFolder="$(OutputPath)%(RecursiveDir)" OverwriteReadOnlyFiles="true" Condition="'@(WorkerFiles)' != ''" />
-        <Warning Text="D2Sharp.Worker not found at $(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/. Process isolation will not be available. Build the solution to include the worker." Condition="'@(WorkerFiles)' == ''" />
-    </Target>
+    <!-- Reference Worker files directly from Worker's output directory -->
+    <!-- This avoids circular dependencies and ensures files are propagated to consuming projects -->
+    <!-- Worker must be built as part of solution build before D2Sharp -->
+    <PropertyGroup>
+        <_WorkerSourcePath>$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/</_WorkerSourcePath>
+    </PropertyGroup>
 
-    <!-- Include worker files as content so they're copied to consuming projects -->
     <ItemGroup>
-        <None Include="$(OutputPath)D2Sharp.Worker*" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" Visible="false">
+        <!-- Core Worker executable and runtime files -->
+        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>D2Sharp.Worker</Link>
+            <Visible>false</Visible>
             <Pack>true</Pack>
             <PackagePath>lib/net8.0</PackagePath>
-            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-        </None>
+        </Content>
+        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.dll" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.dll')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>D2Sharp.Worker.dll</Link>
+            <Visible>false</Visible>
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0</PackagePath>
+        </Content>
+        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.deps.json" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.deps.json')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>D2Sharp.Worker.deps.json</Link>
+            <Visible>false</Visible>
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0</PackagePath>
+        </Content>
+        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.runtimeconfig.json" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.runtimeconfig.json')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>D2Sharp.Worker.runtimeconfig.json</Link>
+            <Visible>false</Visible>
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0</PackagePath>
+        </Content>
+        <Content Include="$(_WorkerSourcePath)D2Sharp.Worker.pdb" Condition="Exists('$(_WorkerSourcePath)D2Sharp.Worker.pdb')">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>D2Sharp.Worker.pdb</Link>
+            <Visible>false</Visible>
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0</PackagePath>
+        </Content>
+
+        <!-- Worker dependencies that may not be in consuming project's framework -->
+        <Content Include="$(_WorkerSourcePath)Microsoft.Extensions.*.dll">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Link>%(Filename)%(Extension)</Link>
+            <Visible>false</Visible>
+            <Pack>true</Pack>
+            <PackagePath>lib/net8.0</PackagePath>
+        </Content>
     </ItemGroup>
 
     <PropertyGroup>
