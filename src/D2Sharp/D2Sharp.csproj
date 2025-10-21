@@ -15,10 +15,10 @@
         <InternalsVisibleTo>D2Sharp.Benchmarks</InternalsVisibleTo>
 
         <!-- Version information -->
-        <VersionPrefix>0.4.1</VersionPrefix>
+        <VersionPrefix>0.4.2</VersionPrefix>
         <VersionSuffix></VersionSuffix>
-        <AssemblyVersion>0.4.1.0</AssemblyVersion>
-        <FileVersion>0.4.1.0</FileVersion>
+        <AssemblyVersion>0.4.2.0</AssemblyVersion>
+        <FileVersion>0.4.2.0</FileVersion>
         <InformationalVersion>$(VersionPrefix)</InformationalVersion>
 
         <!-- Package metadata -->
@@ -111,7 +111,7 @@
         <None Include="$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker*"
               Pack="true"
               PackagePath="build/D2Sharp.Worker"
-              Condition="Exists('$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker')" />
+              Condition="Exists('$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/D2Sharp.Worker.dll')" />
 
         <None Include="$(MSBuildThisFileDirectory)../D2Sharp.Worker/bin/$(Configuration)/net8.0/Microsoft.Extensions.*.dll"
               Pack="true"
