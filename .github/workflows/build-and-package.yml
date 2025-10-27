@@ -110,20 +110,20 @@ jobs:
         go build -buildmode=c-shared -o "d2wrapper.$LIB_EXT" .
 
     - name: Upload D2Sharp build artifact
-      uses: actions/upload-artifact@v4.6.1
+      uses: actions/upload-artifact@v5.0.0
       with:
         name: d2net-${{ matrix.os }}
         path: src/D2Sharp/bin/Release/net8.0/D2Sharp.*
 
     - name: Upload native library
-      uses: actions/upload-artifact@v4.6.1
+      uses: actions/upload-artifact@v5.0.0
       with:
         name: d2wrapper-${{ matrix.os }}
         path: src/D2Sharp/d2wrapper/d2wrapper*
 
     - name: Upload build logs on failure
       if: failure()
-      uses: actions/upload-artifact@v4.6.1
+      uses: actions/upload-artifact@v5.0.0
       with:
         name: build-logs-${{ matrix.os }}
         path: |
@@ -188,7 +188,7 @@ jobs:
 
     - name: Upload NuGet package
       if: steps.check_changes.outputs.run_package == 'true'
-      uses: actions/upload-artifact@v4.6.1
+      uses: actions/upload-artifact@v5.0.0
       with:
         name: nuget-package
         path: ./*.nupkg
