@@ -13,7 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
+      <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
       <!-- Explicit reference to ensure worker process dependencies are copied to output -->
       <!-- ASP.NET Core framework provides this, but worker runs as standalone process -->
       <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
