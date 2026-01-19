@@ -15,6 +15,7 @@
     <ItemGroup>
         <!-- Explicit reference to ensure transitive dependency is copied to output -->
         <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
     </ItemGroup>
 
 </Project>
