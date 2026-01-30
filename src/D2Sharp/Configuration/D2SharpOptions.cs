@@ -35,6 +35,11 @@ public class D2SharpOptions
     public ConcurrencyOptions Concurrency { get; set; } = new();
 
     /// <summary>
+    /// Gets the circuit breaker configuration options (process pool mode only).
+    /// </summary>
+    public CircuitBreakerOptions CircuitBreaker { get; set; } = new();
+
+    /// <summary>
     /// Caching configuration for D2Sharp.
     /// </summary>
     public class CachingOptions
@@ -93,5 +98,34 @@ public class D2SharpOptions
         /// Only applies in direct mode (not process pool mode).
         /// </summary>
         public int MaxConcurrentRenders { get; set; } = 0;
+    }
+
+    /// <summary>
+    /// Circuit breaker configuration for D2Sharp process pool.
+    /// The circuit breaker provides fail-fast behavior when worker health degrades.
+    /// </summary>
+    public class CircuitBreakerOptions
+    {
+        /// <summary>
+        /// Gets or sets the time the circuit breaker stays open before testing recovery.
+        /// Default: 10 seconds
+        /// </summary>
+        public TimeSpan CooldownPeriod { get; set; } = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// Gets or sets the health percentage threshold below which the circuit opens.
+        /// Value must be between 0.0 and 1.0. Default: 0.2 (20%)
+        /// When less than this percentage of workers are healthy, the circuit opens
+        /// and requests fail fast.
+        /// </summary>
+        public double OpenThreshold { get; set; } = 0.2;
+
+        /// <summary>
+        /// Gets or sets the health percentage threshold above which the circuit closes.
+        /// Value must be between 0.0 and 1.0. Default: 0.5 (50%)
+        /// When more than this percentage of workers are healthy in half-open state,
+        /// the circuit closes and normal operation resumes.
+        /// </summary>
+        public double CloseThreshold { get; set; } = 0.5;
     }
 }

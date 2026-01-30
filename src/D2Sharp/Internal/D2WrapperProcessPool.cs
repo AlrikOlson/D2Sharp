@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using D2Sharp.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -38,7 +39,9 @@ public class D2WrapperProcessPool : ID2Renderer
     // Circuit breaker state
     private CircuitBreakerState _circuitState = CircuitBreakerState.Closed;
     private DateTime _circuitOpenedAt = DateTime.MinValue;
-    private readonly TimeSpan _circuitCooldownPeriod = TimeSpan.FromSeconds(10);
+    private readonly TimeSpan _circuitCooldownPeriod;
+    private readonly double _circuitOpenThreshold;
+    private readonly double _circuitCloseThreshold;
     private readonly object _circuitLock = new();
 
     private bool _disposed;
@@ -49,15 +52,34 @@ public class D2WrapperProcessPool : ID2Renderer
     /// </summary>
     /// <param name="poolSize">Number of worker processes to maintain. Default is 10.</param>
     /// <param name="logger">Optional logger for process lifecycle events and errors.</param>
+    /// <param name="circuitBreakerOptions">Optional circuit breaker configuration.</param>
     /// <exception cref="FileNotFoundException">Thrown when worker executable is not found.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when poolSize is less than 1.</exception>
-    public D2WrapperProcessPool(int poolSize = 10, ILogger<D2WrapperProcessPool>? logger = null)
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when circuit breaker thresholds are invalid.</exception>
+    public D2WrapperProcessPool(
+        int poolSize = 10,
+        ILogger<D2WrapperProcessPool>? logger = null,
+        D2SharpOptions.CircuitBreakerOptions? circuitBreakerOptions = null)
     {
         if (poolSize < 1)
             throw new ArgumentOutOfRangeException(nameof(poolSize), "Pool size must be at least 1");
 
+        var cbOptions = circuitBreakerOptions ?? new D2SharpOptions.CircuitBreakerOptions();
+
+        if (cbOptions.OpenThreshold < 0.0 || cbOptions.OpenThreshold > 1.0)
+            throw new ArgumentOutOfRangeException(nameof(circuitBreakerOptions), "OpenThreshold must be between 0.0 and 1.0");
+
+        if (cbOptions.CloseThreshold < 0.0 || cbOptions.CloseThreshold > 1.0)
+            throw new ArgumentOutOfRangeException(nameof(circuitBreakerOptions), "CloseThreshold must be between 0.0 and 1.0");
+
+        if (cbOptions.CooldownPeriod <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(circuitBreakerOptions), "CooldownPeriod must be greater than zero");
+
         _logger = logger ?? NullLogger<D2WrapperProcessPool>.Instance;
         _poolSize = poolSize;
+        _circuitCooldownPeriod = cbOptions.CooldownPeriod;
+        _circuitOpenThreshold = cbOptions.OpenThreshold;
+        _circuitCloseThreshold = cbOptions.CloseThreshold;
 
         // Find worker executable
         var assemblyPath = typeof(D2WrapperProcessPool).Assembly.Location;
@@ -86,7 +108,9 @@ public class D2WrapperProcessPool : ID2Renderer
         // Start background health monitor
         _healthMonitorTask = Task.Run(() => HealthMonitorLoop(_healthMonitorCts.Token));
 
-        _logger.LogInformation("Worker pool initialized with {PoolSize} workers and automatic health monitoring", poolSize);
+        _logger.LogInformation(
+            "Worker pool initialized with {PoolSize} workers and automatic health monitoring (circuit breaker: open at {OpenThreshold}%, close at {CloseThreshold}%, cooldown {CooldownPeriod}s)",
+            poolSize, _circuitOpenThreshold * 100, _circuitCloseThreshold * 100, _circuitCooldownPeriod.TotalSeconds);
     }
 
     /// <summary>
@@ -243,18 +267,20 @@ public class D2WrapperProcessPool : ID2Renderer
 
                 lock (_circuitLock)
                 {
-                    if (_circuitState == CircuitBreakerState.Closed && healthPercentage < 0.2)
+                    if (_circuitState == CircuitBreakerState.Closed && healthPercentage < _circuitOpenThreshold)
                     {
-                        // Less than 20% healthy - open circuit
+                        // Less than open threshold healthy - open circuit
                         _circuitState = CircuitBreakerState.Open;
                         _circuitOpenedAt = DateTime.UtcNow;
-                        _logger.LogError("Circuit breaker opened - only {HealthyCount}/{TotalCount} workers healthy", healthyWorkers, _poolSize);
+                        _logger.LogError("Circuit breaker opened - only {HealthyCount}/{TotalCount} workers healthy ({HealthyPercent}% < {Threshold}%)",
+                            healthyWorkers, _poolSize, healthPercentage * 100, _circuitOpenThreshold * 100);
                     }
-                    else if (_circuitState == CircuitBreakerState.HalfOpen && healthPercentage > 0.5)
+                    else if (_circuitState == CircuitBreakerState.HalfOpen && healthPercentage > _circuitCloseThreshold)
                     {
-                        // More than 50% healthy - close circuit
+                        // More than close threshold healthy - close circuit
                         _circuitState = CircuitBreakerState.Closed;
-                        _logger.LogInformation("Circuit breaker closed - {HealthyCount}/{TotalCount} workers healthy", healthyWorkers, _poolSize);
+                        _logger.LogInformation("Circuit breaker closed - {HealthyCount}/{TotalCount} workers healthy ({HealthyPercent}% > {Threshold}%)",
+                            healthyWorkers, _poolSize, healthPercentage * 100, _circuitCloseThreshold * 100);
                     }
                 }
             }

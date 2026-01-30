@@ -26,6 +26,7 @@ public static class D2RendererBuilderExtensions
             var poolOptions = new ProcessPoolOptions();
             configure(poolOptions);
             options.WorkerCount = poolOptions.WorkerCount;
+            options.CircuitBreaker = poolOptions.CircuitBreaker;
         }
 
         return builder;
@@ -99,6 +100,35 @@ public static class D2RendererBuilderExtensions
     }
 
     /// <summary>
+    /// Configures circuit breaker options for the renderer (process pool mode only).
+    /// </summary>
+    /// <param name="builder">The renderer builder.</param>
+    /// <param name="configure">Action to configure circuit breaker options.</param>
+    /// <returns>The builder for chaining.</returns>
+    /// <example>
+    /// <code>
+    /// builder.Services.AddD2Sharp(d2 => d2
+    ///     .UseProcessPool()
+    ///     .ConfigureCircuitBreaker(cb =>
+    ///     {
+    ///         cb.CooldownPeriod = TimeSpan.FromSeconds(30);
+    ///         cb.OpenThreshold = 0.1;  // Open when less than 10% healthy
+    ///         cb.CloseThreshold = 0.6; // Close when more than 60% healthy
+    ///     }));
+    /// </code>
+    /// </example>
+    public static ID2RendererBuilder ConfigureCircuitBreaker(this ID2RendererBuilder builder, Action<D2SharpOptions.CircuitBreakerOptions> configure)
+    {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        if (configure == null) throw new ArgumentNullException(nameof(configure));
+
+        var options = ((D2RendererBuilder)builder).GetOptions();
+        configure(options.CircuitBreaker);
+
+        return builder;
+    }
+
+    /// <summary>
     /// Options for configuring process pool behavior.
     /// </summary>
     public class ProcessPoolOptions
@@ -110,6 +140,11 @@ public static class D2RendererBuilderExtensions
         public int WorkerCount { get; set; } = 10;
 
         /// <summary>
+        /// Gets the circuit breaker configuration.
+        /// </summary>
+        public D2SharpOptions.CircuitBreakerOptions CircuitBreaker { get; set; } = new();
+
+        /// <summary>
         /// Sets the number of worker processes.
         /// </summary>
         /// <param name="count">Number of workers.</param>
@@ -117,6 +152,30 @@ public static class D2RendererBuilderExtensions
         public ProcessPoolOptions WithWorkerCount(int count)
         {
             WorkerCount = count;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the circuit breaker cooldown period.
+        /// </summary>
+        /// <param name="cooldownPeriod">Time the circuit breaker stays open before testing recovery.</param>
+        /// <returns>This instance for chaining.</returns>
+        public ProcessPoolOptions WithCircuitBreakerCooldown(TimeSpan cooldownPeriod)
+        {
+            CircuitBreaker.CooldownPeriod = cooldownPeriod;
+            return this;
+        }
+
+        /// <summary>
+        /// Configures the circuit breaker thresholds.
+        /// </summary>
+        /// <param name="openThreshold">Health percentage below which the circuit opens (0.0-1.0). Default: 0.2 (20%)</param>
+        /// <param name="closeThreshold">Health percentage above which the circuit closes (0.0-1.0). Default: 0.5 (50%)</param>
+        /// <returns>This instance for chaining.</returns>
+        public ProcessPoolOptions WithCircuitBreakerThresholds(double openThreshold, double closeThreshold)
+        {
+            CircuitBreaker.OpenThreshold = openThreshold;
+            CircuitBreaker.CloseThreshold = closeThreshold;
             return this;
         }
     }

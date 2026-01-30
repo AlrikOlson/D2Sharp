@@ -136,7 +136,7 @@ public static class D2SharpServiceExtensions
         {
             // Create logger for pool using the app's ILoggerFactory (respects appsettings.json)
             var poolLogger = loggerFactory?.CreateLogger<D2WrapperProcessPool>();
-            var pool = new D2WrapperProcessPool(options.WorkerCount, poolLogger);
+            var pool = new D2WrapperProcessPool(options.WorkerCount, poolLogger, options.CircuitBreaker);
             return new D2Renderer(pool, ownsImplementation: true);
         }
         else
