@@ -72,6 +72,9 @@ public class D2WrapperProcessPool : ID2Renderer
         if (cbOptions.CloseThreshold < 0.0 || cbOptions.CloseThreshold > 1.0)
             throw new ArgumentOutOfRangeException(nameof(circuitBreakerOptions), "CloseThreshold must be between 0.0 and 1.0");
 
+        if (cbOptions.CloseThreshold < cbOptions.OpenThreshold)
+            throw new ArgumentOutOfRangeException(nameof(circuitBreakerOptions), "CloseThreshold must be greater than or equal to OpenThreshold");
+
         if (cbOptions.CooldownPeriod <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(circuitBreakerOptions), "CooldownPeriod must be greater than zero");
 

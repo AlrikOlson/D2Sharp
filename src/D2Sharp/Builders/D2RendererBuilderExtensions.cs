@@ -172,8 +172,18 @@ public static class D2RendererBuilderExtensions
         /// <param name="openThreshold">Health percentage below which the circuit opens (0.0-1.0). Default: 0.2 (20%)</param>
         /// <param name="closeThreshold">Health percentage above which the circuit closes (0.0-1.0). Default: 0.5 (50%)</param>
         /// <returns>This instance for chaining.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when thresholds are out of range or closeThreshold is less than openThreshold.</exception>
         public ProcessPoolOptions WithCircuitBreakerThresholds(double openThreshold, double closeThreshold)
         {
+            if (openThreshold < 0.0 || openThreshold > 1.0)
+                throw new ArgumentOutOfRangeException(nameof(openThreshold), "OpenThreshold must be between 0.0 and 1.0");
+
+            if (closeThreshold < 0.0 || closeThreshold > 1.0)
+                throw new ArgumentOutOfRangeException(nameof(closeThreshold), "CloseThreshold must be between 0.0 and 1.0");
+
+            if (closeThreshold < openThreshold)
+                throw new ArgumentOutOfRangeException(nameof(closeThreshold), "CloseThreshold must be greater than or equal to OpenThreshold");
+
             CircuitBreaker.OpenThreshold = openThreshold;
             CircuitBreaker.CloseThreshold = closeThreshold;
             return this;

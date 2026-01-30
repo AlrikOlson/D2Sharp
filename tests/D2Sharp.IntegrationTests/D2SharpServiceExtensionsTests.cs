@@ -333,4 +333,54 @@ public class D2SharpServiceExtensionsTests
         Assert.Equal(0.15, poolOptions.CircuitBreaker.OpenThreshold);
         Assert.Equal(0.65, poolOptions.CircuitBreaker.CloseThreshold);
     }
+
+    [Fact]
+    public void AddD2Sharp_WithOpenThresholdGreaterThanCloseThreshold_ThrowsOnRendererCreation()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddD2Sharp(options =>
+        {
+            // Invalid - OpenThreshold (0.6) is greater than CloseThreshold (0.4)
+            options.CircuitBreaker.OpenThreshold = 0.6;
+            options.CircuitBreaker.CloseThreshold = 0.4;
+        });
+        var provider = services.BuildServiceProvider();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() => provider.GetRequiredService<D2Renderer>());
+    }
+
+    [Fact]
+    public void ProcessPoolOptions_WithCircuitBreakerThresholds_InvalidOpenThreshold_Throws()
+    {
+        // Arrange
+        var poolOptions = new D2RendererBuilderExtensions.ProcessPoolOptions();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            poolOptions.WithCircuitBreakerThresholds(1.5, 0.5)); // openThreshold out of range
+    }
+
+    [Fact]
+    public void ProcessPoolOptions_WithCircuitBreakerThresholds_InvalidCloseThreshold_Throws()
+    {
+        // Arrange
+        var poolOptions = new D2RendererBuilderExtensions.ProcessPoolOptions();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            poolOptions.WithCircuitBreakerThresholds(0.2, -0.1)); // closeThreshold out of range
+    }
+
+    [Fact]
+    public void ProcessPoolOptions_WithCircuitBreakerThresholds_CloseThresholdLessThanOpenThreshold_Throws()
+    {
+        // Arrange
+        var poolOptions = new D2RendererBuilderExtensions.ProcessPoolOptions();
+
+        // Act & Assert
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            poolOptions.WithCircuitBreakerThresholds(0.6, 0.4)); // closeThreshold < openThreshold
+    }
 }
